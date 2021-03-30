@@ -1,0 +1,118 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage[a4paper,left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+%\usepackage{geometry} % to change the page dimensions
+% \geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margin=0in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{logicproof}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usetikzlibrary{arrows,petri,topaths}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily,
+  mathescape
+}
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\sffamily\thepage\normalfont}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+\newcommand{\qedsymbol}{\rightline{$\blacksquare$}}
+\renewcommand{\familydefault}{\sfdefault}
+\renewcommand{\thesection}{\hspace{-0.5cm}\arabic{section}}
+\renewcommand{\thesubsection}{\alph{subsection})}
+
+\usepackage[style=numeric-comp]{biblatex}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+\title{\vspace{-1.6cm}Bioinformatics Assignment}
+\author{zrlr73}
+\date{} % Activate to display a given date or no date (if empty),
+         % otherwise the current date is printed 
+
+\begin{document}
+\maketitle
+
+\section{Markov Models}
+\subsection{HMMs with silent states}
+Since the Viterbi algorithm is already popular for solving this problem without silent states, I decided to adapt it forthe inclusion of silent states. The Viterbi algorithm iterates using the observed output of the modelled HMM, constructing a trellis of possible states for each observed output. Since we need to cater for states that do not provide any output whatsoever, we need to be able to generate possible silent states as well as the existing trellis of non-silent states. We also need to consider these silent states alongside the non-silent ones when deciding on possible precursors for each observed outcome.
+
+Therefore, I would propose the following modified Viterbi algorithm:
+\begin{lstlisting}
+Initialise trellis with $v_0(0)=1, v_k(0)=0\quad|\quad k>0$
+Initialise 2D array of linked list heads with size $m\times L$
+
+// For each observed output
+For $i=1\text{ to }L$ do:
+  // For each possible state
+  For each state $l$ do:
+    $v_l(i) = e_l(x_i) \times max_k\{v_k(i-1)\times m_{kl}\}$
+
+  // Evaluate possible silent states
+  Initialise array $a$ of linked list heads with length $m$ and $a_0=v_l$
+  Initialise numeric array $b$ with length $m$
+  Integer j = 0
+  Initialise Boolean value $loop$
+  Do:
+    j++
+    loop = false
+    For each state $s$ do:
+      $a_j(s) = e_s($silent$)\times max_f\{a_{j-1}(f)\times m_{fs}\}$
+
+      if ($a_j(s) > v_l(s)$ and $a_j(s) > a_{j-1}(s)$):
+        loop = true
+  While (loop)
+
+\end{lstlisting}
+
+
+\end{document}
