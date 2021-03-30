@@ -1,14 +1,69 @@
 
-def ExpectationMaximisation(observations, symbols, transitions, emissions, initialProbabilities):
-    observations = [symbols.index(s) for s in observations]
-
-    NUM_STATES = len(transitions)
+def ExpectationMaximisation(sequence, num_states):
     
-    states = range(NUM_STATES)
-    
-    # Work out the overall probability of that observation
-    # (by summing the probability that it occurred in each possible starting state)
-    lTheta = sum([initialProbabilities[s] * emissions[s][observations[0]]  for s in states])
+    # Generates and returns a randomised matrix where each row contains a discrete probability distribution
+    # - height = number of distributions
+    # - width = number of items in each distribution
+    def generateProbabilityMatrix(height, width=False):
+        import random
+        if (width == False):
+            width = height
 
-    for i in range(1, len(observations)):
-        lTheta *= sum([transitions[s] * emissions[s][observations[i]]  for s in states])
+        matrix = []
+
+        for i in range(height):
+            # randpd2 from https://thehousecarpenter.wordpress.com/2017/02/22/generating-random-probability-distributions/
+
+            variates = [random.random() for i in range(width)]
+            s = sum(variates)
+            matrix.append([i/s for i in variates])
+        
+        return matrix
+
+
+    # Recursively converts numerical values in nested lists to log space
+    def convertToLog(structure):
+        if (type(structure) is list):
+            output = []
+            for i in structure:
+                output.append(convertToLog(i))
+            return output
+        return math.log(structure)
+
+
+    import math
+    from collections import OrderedDict
+
+    symbols = list(OrderedDict.fromkeys(sequence).keys())
+    num_symbols = len(symbols)
+
+    sequence = [sequence.index(s) for s in symbols]
+
+    # Set random initial conditions
+    transitions = generateProbabilityMatrix(num_states)
+    emissions = generateProbabilityMatrix(num_states, num_symbols)
+    initialDistribution = generateProbabilityMatrix(1, num_states)[0]
+
+    # === FORWARD ALGORITHM ===
+
+    # Convert structures to log space
+    [lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
+
+    # Initialise trellis
+    trellis = []
+    for o in range(len(sequence)):
+        trellis.append([])
+
+        for s in range(num_states):
+            trellis[i].append(0.0)
+    
+    # Populate first row of trellis
+    for s in range(num_states):
+        trellis[0][s] = lInitialDistribution[s] + lEmissions[s][sequence[0]]
+    
+    # Populate the rest of the trellis
+    for l in range(1, len(sequence)):
+        observed = sequence[l]
+
+        for s in range(num_states):
+            trellis[l][s] = lEmissions[s][sequence[l]] + math.log(sum([math.exp(trellis[i][l-1] + lTransitions[i][s]) for i in range(num_states)]))
