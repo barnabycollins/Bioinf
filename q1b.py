@@ -81,4 +81,47 @@ def ExpectationMaximisation(sequence, num_states):
         for s in range(num_states):
             bTrellis[l-1][s] = math.log(sum([math.exp(bTrellis[i][l] + lTransitions[s][i] + lEmissions[i][sequence[l]]) for i in range(num_states)]))
     
-    # === OKAY NOW I HAVE TO WORK OUT HOW TO UPDATE ===
+    # === UPDATE ESTIMATES ===
+    
+    # Probabilities of being in each state at each point in the sequence
+    gammas = []
+
+    # Probabilities of performing each transition at each point in the sequence
+    etas = []
+
+    for l in range(sequenceLength):
+        gammas.append([])
+        etas.append([])
+        for s in range(num_states):
+            gammas.append((fTrellis[l][s] + bTrellis[l][s]) - math.log(sum([math.exp(fTrellis[l][i] + bTrellis[l][i]) for i in range(num_states)])))
+
+            if (l != lastItem):
+                etas[l].append([])
+                for t in range(num_states):
+                    top = fTrellis[l][s] + lTransitions[s][t] + bTrellis[l+1][t] + lEmissions[t][sequence[l+1]]
+                    bottom = math.log(sum([sum([fTrellis[i][j] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]] for j in range(num_states)]) for i in range(num_states)]))
+                    etas[l][s].append(top - bottom)
+    
+    newInitialDistribution = []
+    newTransitions = []
+    newEmissions = []
+
+    for s in range(num_states):
+        newInitialDistribution.append(math.exp(gammas[0][s]))
+        newTransitions.append([])
+        newEmissions.append([])
+
+        bottom = sum([math.exp(gammas[l][s]) for l in range(sequenceLength-1)])
+
+        for t in range(num_states):
+            top = sum([math.exp(etas[l][s][t]) for l in range(sequenceLength-1)])
+
+            newTransitions[s].append(top / bottom)
+        
+        for o in range(num_symbols):
+            top = sum([int(sequence[l] == o) * math.exp(gammas[l][s]) for l in range(sequenceLength)])
+
+            newEmissions.append(top / bottom)
+    
+
+
