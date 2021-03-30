@@ -1,5 +1,5 @@
 import random
-from q1a import ExpectationMaximisation as EM
+from q1b import ExpectationMaximisation as EM
 
 NUM_STATES = 8
 NUM_SYMBOLS = 4
