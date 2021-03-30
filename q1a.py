@@ -38,32 +38,47 @@ def ExpectationMaximisation(sequence, num_states):
     num_symbols = len(symbols)
 
     sequence = [sequence.index(s) for s in symbols]
+    sequenceLength = len(sequence)
 
     # Set random initial conditions
     transitions = generateProbabilityMatrix(num_states)
     emissions = generateProbabilityMatrix(num_states, num_symbols)
     initialDistribution = generateProbabilityMatrix(1, num_states)[0]
 
-    # === FORWARD ALGORITHM ===
-
     # Convert structures to log space
     [lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
 
-    # Initialise trellis
-    trellis = []
-    for o in range(len(sequence)):
-        trellis.append([])
+    # Initialise trellises
+    fTrellis = []
+    bTrellis = []
+    for o in range(sequenceLength):
+        fTrellis.append([])
+        bTrellis.append([])
 
         for s in range(num_states):
-            trellis[i].append(0.0)
-    
+            fTrellis[i].append(0.0)
+            bTrellis[i].append(0.0)
+
+    # === FORWARD ALGORITHM ===
     # Populate first row of trellis
     for s in range(num_states):
-        trellis[0][s] = lInitialDistribution[s] + lEmissions[s][sequence[0]]
+        fTrellis[0][s] = lInitialDistribution[s] + lEmissions[s][sequence[0]]
     
     # Populate the rest of the trellis
-    for l in range(1, len(sequence)):
-        observed = sequence[l]
-
+    for l in range(1, sequenceLength):
         for s in range(num_states):
-            trellis[l][s] = lEmissions[s][sequence[l]] + math.log(sum([math.exp(trellis[i][l-1] + lTransitions[i][s]) for i in range(num_states)]))
+            fTrellis[l][s] = lEmissions[s][sequence[l]] + math.log(sum([math.exp(fTrellis[i][l-1] + lTransitions[i][s]) for i in range(num_states)]))
+
+    # === BACKWARD ALGORITHM ===
+    lastItem = sequenceLength - 1
+
+    # Populate last row of trellis
+    for s in range(num_states):
+        bTrellis[lastItem][s] = 1.0
+
+    # Populate the rest of the trellis
+    for l in range(lastItem, 0, -1):
+        for s in range(num_states):
+            bTrellis[l-1][s] = math.log(sum([math.exp(bTrellis[i][l] + lTransitions[s][i] + lEmissions[i][sequence[l]]) for i in range(num_states)]))
+    
+    # === OKAY NOW I HAVE TO WORK OUT HOW TO UPDATE ===
