@@ -1,13 +1,31 @@
 
-def ExpectationMaximisation(sequence, num_states):
-    
-    # Generates and returns a randomised matrix where each row contains a discrete probability distribution
-    # - height = number of distributions
-    # - width = number of items in each distribution
-    def generateProbabilityMatrix(height, width=False):
+def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
+    """Finds a local maximum set of parameters for an HMM with 'num_states' states and observed output 'sequence'
+
+    Parameters:
+    - sequence:     a string of symbols representing observed outputs
+                    eg, 'ACTGGTCTCGAGTGTGACTG'
+    - num_states:   the integer number of states the HMM being modelled has
+
+    Returns a tuple of optimised parameters, as follows:
+    (
+        Initial state probability distribution (ie, for the first item in the sequence)
+        State transition matrix (as a 2D list, where the inner lists represent the distribution of transitions from one state)
+        Emission matrix (as a 2D list, where the inner lists represent the distribution of observed symbols for one state)
+        Ordered list of the symbols (mapping symbols to indices in the emission matrix)
+        Log likelihood of the optimised parameters
+    )
+    """
+
+    def generateProbabilityMatrix(height, width):
+        """Generates and returns a randomised matrix where each row contains a discrete probability distribution
+
+        Parameters
+        - height = number of distributions
+        - width = number of items in each distribution
+        """
+
         import random
-        if (width == False):
-            width = height
 
         matrix = []
 
@@ -21,8 +39,9 @@ def ExpectationMaximisation(sequence, num_states):
         return matrix
 
 
-    # Recursively converts numerical values in nested lists to log space
-    def convertToLog(structure):
+    def convertToLog(structure: Union[list, float, int]) -> Union[list, float]:
+        """Recursively converts numerical values in nested lists to log space"""
+
         if (type(structure) is list):
             output = []
             for i in structure:
@@ -37,18 +56,18 @@ def ExpectationMaximisation(sequence, num_states):
     symbols = list(OrderedDict.fromkeys(sequence).keys())
     num_symbols = len(symbols)
 
-    sequence = [sequence.index(s) for s in symbols]
+    sequence = [symbols.index(s) for s in sequence]
     sequenceLength = len(sequence)
 
     # Set random initial conditions
-    transitions = generateProbabilityMatrix(num_states)
+    transitions = generateProbabilityMatrix(num_states, num_states)
     emissions = generateProbabilityMatrix(num_states, num_symbols)
     initialDistribution = generateProbabilityMatrix(1, num_states)[0]
 
-    lastLikelihood = 0
-    likelihood = -1
+    lastLikelihood = -1
+    likelihood = 0
 
-    while (likelihood != lastLikelihood):
+    while (likelihood > lastLikelihood):
         # Convert structures to log space
         [lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
         
@@ -135,5 +154,4 @@ def ExpectationMaximisation(sequence, num_states):
         # Compute likelihood for new parameters
         likelihood = sum([math.log(sum([math.exp(emissions[s][sequence[l]]) for s in range(num_states)])) for l in range(sequenceLength)])
     
-
-
+    return (initialDistribution, transitions, emissions, symbols, likelihood)
