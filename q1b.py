@@ -108,6 +108,7 @@ def ExpectationMaximisation(sequence, num_states):
                         bottom = math.log(sum([sum([fTrellis[i][j] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]] for j in range(num_states)]) for i in range(num_states)]))
                         etas[l][s].append(top - bottom)
         
+        # Update parameters
         initialDistribution = []
         transitions = []
         emissions = []
@@ -119,16 +120,19 @@ def ExpectationMaximisation(sequence, num_states):
 
             bottom = sum([math.exp(gammas[l][s]) for l in range(sequenceLength-1)])
 
+            # Update transition matrix
             for t in range(num_states):
                 top = sum([math.exp(etas[l][s][t]) for l in range(sequenceLength-1)])
 
                 transitions[s].append(top / bottom)
             
+            # Update emission probabilities
             for o in range(num_symbols):
                 top = sum([int(sequence[l] == o) * math.exp(gammas[l][s]) for l in range(sequenceLength)])
 
                 emissions.append(top / bottom)
 
+        # Compute likelihood for new parameters
         likelihood = sum([math.log(sum([math.exp(emissions[s][sequence[l]]) for s in range(num_states)])) for l in range(sequenceLength)])
     
 
