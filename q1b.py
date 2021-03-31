@@ -1,3 +1,6 @@
+import math
+from collections import OrderedDict
+from typing import Union
 
 def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
     """Finds a local maximum set of parameters for an HMM with 'num_states' states and observed output 'sequence'
@@ -47,11 +50,15 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             for i in structure:
                 output.append(convertToLog(i))
             return output
-        return math.log(structure)
+        return safeLog(structure)
 
+    def safeLog(number):
+        """Returns the log of a number, returning -1e308 (the lower limit of a float) if the number is zero to avoid errors."""
 
-    import math
-    from collections import OrderedDict
+        if (number == 0):
+            return -1e308
+        
+        return math.log(number)
 
     symbols = list(OrderedDict.fromkeys(sequence).keys())
     num_symbols = len(symbols)
@@ -68,6 +75,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
     likelihood = 0
 
     while (likelihood > lastLikelihood):
+        print(f'Likelihood: {likelihood}')
         # Convert structures to log space
         [lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
         
@@ -81,8 +89,8 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             bTrellis.append([])
 
             for s in range(num_states):
-                fTrellis[i].append(0.0)
-                bTrellis[i].append(0.0)
+                fTrellis[o].append(0.0)
+                bTrellis[o].append(0.0)
 
         # === FORWARD ALGORITHM ===
         # Populate first row of trellis
@@ -92,7 +100,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Populate the rest of the trellis
         for l in range(1, sequenceLength):
             for s in range(num_states):
-                fTrellis[l][s] = lEmissions[s][sequence[l]] + math.log(sum([math.exp(fTrellis[i][l-1] + lTransitions[i][s]) for i in range(num_states)]))
+                fTrellis[l][s] = lEmissions[s][sequence[l]] + safeLog(sum([math.exp(fTrellis[l-1][i] + lTransitions[i][s]) for i in range(num_states)]))
 
         # === BACKWARD ALGORITHM ===
         lastItem = sequenceLength - 1
@@ -104,7 +112,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Populate the rest of the trellis
         for l in range(lastItem, 0, -1):
             for s in range(num_states):
-                bTrellis[l-1][s] = math.log(sum([math.exp(bTrellis[i][l] + lTransitions[s][i] + lEmissions[i][sequence[l]]) for i in range(num_states)]))
+                bTrellis[l-1][s] = safeLog(sum([math.exp(bTrellis[l][i] + lTransitions[s][i] + lEmissions[i][sequence[l]]) for i in range(num_states)]))
         
 
         # === UPDATE ESTIMATES ===
@@ -118,13 +126,13 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             gammas.append([])
             etas.append([])
             for s in range(num_states):
-                gammas.append((fTrellis[l][s] + bTrellis[l][s]) - math.log(sum([math.exp(fTrellis[l][i] + bTrellis[l][i]) for i in range(num_states)])))
+                gammas[l].append((fTrellis[l][s] + bTrellis[l][s]) - safeLog(sum([math.exp(fTrellis[l][i] + bTrellis[l][i]) for i in range(num_states)])))
 
                 if (l != lastItem):
                     etas[l].append([])
                     for t in range(num_states):
                         top = fTrellis[l][s] + lTransitions[s][t] + bTrellis[l+1][t] + lEmissions[t][sequence[l+1]]
-                        bottom = math.log(sum([sum([fTrellis[i][j] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]] for j in range(num_states)]) for i in range(num_states)]))
+                        bottom = safeLog(sum([sum([math.exp(fTrellis[l][i] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]]) for j in range(num_states)]) for i in range(num_states)]))
                         etas[l][s].append(top - bottom)
         
         # Update parameters
@@ -133,6 +141,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         emissions = []
 
         for s in range(num_states):
+
             initialDistribution.append(math.exp(gammas[0][s]))
             transitions.append([])
             emissions.append([])
@@ -149,9 +158,9 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             for o in range(num_symbols):
                 top = sum([int(sequence[l] == o) * math.exp(gammas[l][s]) for l in range(sequenceLength)])
 
-                emissions.append(top / bottom)
+                emissions[s].append(top / bottom)
 
         # Compute likelihood for new parameters
-        likelihood = sum([math.log(sum([math.exp(emissions[s][sequence[l]]) for s in range(num_states)])) for l in range(sequenceLength)])
+        likelihood = sum([safeLog(sum([math.exp(emissions[s][sequence[l]]) for s in range(num_states)])) for l in range(sequenceLength)])
     
     return (initialDistribution, transitions, emissions, symbols, likelihood)
