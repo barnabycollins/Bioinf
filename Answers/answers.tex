@@ -114,5 +114,76 @@ For $i=1\text{ to }L$ do:
 
 \end{lstlisting}
 
+\subsection{The Expectation-Maximisation Algorithm}
+bruh
+
+
+
+\section{Tree Reconstruction}
+
+\subsection{The BUILD Algorithm}
+If we call $(i,j)$ the lowest common ancestor of the leaves $i$ and $j$ of a tree, we can also define an operator $<$ which denotes the hierarchy of lowest common ancestors. For example, the constraint $(i,j)<(k,l)$ tells us that the lowest common ancestor of $k$ and $l$ is itself an ancestor of the lowest common ancestor of $i$ and $j$ - see figure below.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=10cm]{buildtree}
+\end{figure}
+
+The purpose of the BUILD algorithm is to construct a tree solely from these constraints. In a bioinformatics context, assuming the tree is a phylogeny, the constraints would be describing how closely related pairs of species are. As an example, we would specify the above constraint if we knew that the four species $\{i,j,k,l\}$ all had a common ancestor, but $i$ and $j$ were more closely related to each other than to the rest.
+
+In BUILD, the structure of a tree is inferred using a technique known as 'partitioning'. This is when the set of leaves is split into groups known as 'blocks' at the root - for example, assuming descriptive enough constraints, the above tree would be split into the two sets $\{i,j,k\}$ and $\{l,m\}$. This partitioning can be done fairly easily using logical properties of the constraints:
+
+From any constraint $(i,j)<(k,l)$ we can infer that:
+\begin{enumerate}
+	\item $i$ and $j$ are in the same block.
+	\item If we already know that $k$ and $l$ are in the same block, then $i$ and $j$ must also be in that same block.
+\end{enumerate}
+
+We also assume that no two leaves are in the same block unless we can infer that they are from the constraints. In the original paper, this is the third rule.
+
+With the set of leaves split into at least two blocks, we recurse into each block, partitioning every block until there is only one leaf left in the set. At this point, the algorithm's recursive structure exactly reflects the tree being constructed, so it simply needs to construct and return a tree. Instances with just one leaf return it, and instances that partitioned items join the returned structures with a new node until the outer layer is reached and the tree is complete.
+
+
+\subsection{Partitioning}
+Partitioning could occur as follows:
+\begin{lstlisting}
+// a 2D array: items in this array will be referred to as 'blocks'
+$\pi_C$ = []
+
+For each constraint $(a,b)<(c,d)$:
+  If neither $a$ nor $b$ already exists in $\pi_C$:
+    Add the new block [$a$,$b$] to $\pi_C$
+
+  Else if $a$ and $b$ already exist in separate blocks in $\pi_C$:
+    Replace those two blocks with their union
+
+  Else if $a$ already exists in a block in $\pi_C$:
+    Add $b$ to that block
+  Else if $b$ already exists in a block in $\pi_C$:
+    Add $a$ to that block
+
+For each constraint $(a,b)<(c,d)$:
+  If $c$ and $d$ share a block, merge the block containing $a$ and $b$ into it
+
+For each leaf $x$ that is not a member of an existing block:
+  Add the new block [$x$] to $\pi_C$
+\end{lstlisting}
+
+The result of this algorithm is the 2D array $\pi_C$, with structure as follows:
+\begin{lstlisting}
+[
+  [i, j, k],
+  [l, m, o],
+  [n]
+]
+\end{lstlisting}
+Each sub-array corresponds to a block $S_i$, with letters denoting the leaves in that block.
+
+
+\subsection{Example}
+
+
+\subsection{Reversing BUILD}
+
 
 \end{document}
