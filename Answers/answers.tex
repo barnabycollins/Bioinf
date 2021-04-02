@@ -67,6 +67,7 @@
 \renewcommand{\familydefault}{\sfdefault}
 \renewcommand{\thesection}{\hspace{-0.5cm}\arabic{section}}
 \renewcommand{\thesubsection}{\alph{subsection})}
+\renewcommand{\thesubsubsection}{Recursion depth \arabic{subsubsection}}
 
 \usepackage[style=numeric-comp]{biblatex}
 
@@ -126,7 +127,7 @@ If we call $(i,j)$ the lowest common ancestor of the leaves $i$ and $j$ of a tre
 
 \begin{figure}
 	\centering
-	\includegraphics[width=10cm]{buildtree}
+	\includegraphics[width=10cm]{buildexample}
 \end{figure}
 
 The purpose of the BUILD algorithm is to construct a tree solely from these constraints. In a bioinformatics context, assuming the tree is a phylogeny, the constraints would be describing how closely related pairs of species are. As an example, we would specify the above constraint if we knew that the four species $\{i,j,k,l\}$ all had a common ancestor, but $i$ and $j$ were more closely related to each other than to the rest.
@@ -177,10 +178,467 @@ The result of this algorithm is the 2D array $\pi_C$, with structure as follows:
   [n]
 ]
 \end{lstlisting}
-Each sub-array corresponds to a block $S_i$, with letters denoting the leaves in that block.
+Each sub-array (each depicted here on its own line) corresponds to a block $S_i$, with letters denoting the leaves in that block.
 
 
 \subsection{Example}
+For clarity, I have named each block and set of constraints with their recursion depth and an arbitrary number to identify them at that depth. This is notated $S_\text{number}^\text{depth}$.
+
+\setcounter{subsubsection}{-1}
+
+\subsubsection{}
+	\begin{center}
+	Generating blocks from first halves of constraints:
+	
+	\begin{tabular}{c c c c}
+		\{e,f\} & \{c,h,a,j,n,l\} & \{d,i,g,b\} & \{k,m\}
+	\end{tabular}
+	
+	Consolidating blocks with second halves of constraints:
+	
+	\begin{tabular}{c c c}
+		\hspace{0.8cm}$S_1^1$\hspace{0.8cm} & \hspace{0.8cm}$S_2^1$\hspace{0.8cm} & \hspace{0.8cm}$S_3^1$\hspace{0.8cm} \\
+		\{e,f,c,h,a,j,n,l\} & \{d,i,g,b\} & \{k,m\}
+	\end{tabular}
+	
+	Finding constraints for each block:
+	
+	\begin{tabular}{c c c}
+		\hspace{0.8cm}$C_1^1$\hspace{0.8cm} & \hspace{0.8cm}$C_2^1$\hspace{0.8cm} & \hspace{0.8cm}$C_3^1$\hspace{0.8cm} \\
+		$(c,h)<(a,n)$ & $(d,i)<(g,i)$ & $\emptyset$ \\
+		$(j,n)<(j,l)$ & $(g,b)<(g,i)$ \\
+		$(c,a)<(f,h)$ \\
+		$(j,l)<(e,n)$ \\
+		$(n,l)<(a,f)$ \\
+		$(c,h)<(c,a)$ \\
+		$(e,f)<(h,l)$ \\
+		$(j,l)<(j,a)$ \\
+		$(j,n)<(j,f)$ \\
+	\end{tabular}
+
+	Recursion:
+	
+	\begin{tabular}{c c c c c}
+		 & Block & & Constraints & \\
+		BUILD( & $S_1^1$ & , & $C_1^1$ & ) \\
+		BUILD( & $S_2^1$ & , & $C_2^1$ & ) \\
+		BUILD( & $S_3^1$ & , & $C_3^1$ & )
+	\end{tabular}
+	\end{center}
+
+
+\subsubsection{}
+
+	\hspace{0.5cm}BUILD($S_1^1$, $C_1^1$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$S_1^2$\hspace{0.8cm} & \hspace{0.8cm}$S_2^2$\hspace{0.8cm} & \hspace{0.8cm}$S_3^2$\hspace{0.8cm} \\
+			\{c,h,a\} & \{j,n,l\} & \{e,f\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_1^2$\hspace{0.8cm} & \hspace{0.8cm}$C_2^2$\hspace{0.8cm} & \hspace{0.8cm}$C_3^2$\hspace{0.8cm} \\
+			$(c,h)<(c,a)$ & $(j,n)<(j,l)$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_1^2$ & , & $C_1^2$ & ) \\
+			BUILD( & $S_2^2$ & , & $C_2^2$ & ) \\
+			BUILD( & $S_3^2$ & , & $C_3^2$ & )
+		\end{tabular}
+		\end{center}
+
+
+	\hspace{0.5cm}BUILD($S_2^1$, $C_2^1$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_4^2$\hspace{0.8cm} & \hspace{0.8cm}$S_5^2$\hspace{0.8cm} \\
+			\{d,i\} & \{g,b\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_4^2$\hspace{0.8cm} & \hspace{0.8cm}$C_5^2$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_4^2$ & , & $C_4^2$ & ) \\
+			BUILD( & $S_5^2$ & , & $C_5^2$ & )
+		\end{tabular}
+		\end{center}
+
+
+	\hspace{0.5cm}BUILD($S_3^1$, $C_3^1$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_6^2$\hspace{0.8cm} & \hspace{0.8cm}$S_7^2$\hspace{0.8cm} \\
+			\{k\} & \{m\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_6^2$\hspace{0.8cm} & \hspace{0.8cm}$C_7^2$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_6^2$ & , & $C_6^2$ & ) \\
+			BUILD( & $S_7^2$ & , & $C_7^2$ & )
+		\end{tabular}
+		\end{center}
+
+
+\subsubsection{}
+
+	\hspace{0.5cm}BUILD($S_1^2$, $C_1^2$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_1^3$\hspace{0.8cm} & \hspace{0.8cm}$S_2^3$\hspace{0.8cm} \\
+			\{c,h\} & \{a\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_1^3$\hspace{0.8cm} & \hspace{0.8cm}$C_2^3$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_1^3$ & , & $C_1^3$ & ) \\
+			BUILD( & $S_2^3$ & , & $C_2^3$ & )
+		\end{tabular}
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_2^2$, $C_2^2$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_3^3$\hspace{0.8cm} & \hspace{0.8cm}$S_4^3$\hspace{0.8cm} \\
+			\{j,n\} & \{l\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_3^3$\hspace{0.8cm} & \hspace{0.8cm}$C_4^3$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_3^3$ & , & $C_3^3$ & ) \\
+			BUILD( & $S_4^3$ & , & $C_4^3$ & )
+		\end{tabular}
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_3^2$, $C_3^2$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_5^3$\hspace{0.8cm} & \hspace{0.8cm}$S_6^3$\hspace{0.8cm} \\
+			\{e\} & \{f\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_5^3$\hspace{0.8cm} & \hspace{0.8cm}$C_6^3$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_5^3$ & , & $C_5^3$ & ) \\
+			BUILD( & $S_6^3$ & , & $C_6^3$ & )
+		\end{tabular}
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_4^2$, $C_4^2$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_7^3$\hspace{0.8cm} & \hspace{0.8cm}$S_8^3$\hspace{0.8cm} \\
+			\{d\} & \{i\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_7^3$\hspace{0.8cm} & \hspace{0.8cm}$C_8^3$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_7^3$ & , & $C_7^3$ & ) \\
+			BUILD( & $S_8^3$ & , & $C_8^3$ & )
+		\end{tabular}
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_5^2$, $C_5^2$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_9^3$\hspace{0.8cm} & \hspace{0.8cm}$S_{10}^3$\hspace{0.8cm} \\
+			\{g\} & \{b\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_9^3$\hspace{0.8cm} & \hspace{0.8cm}$C_{10}^3$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_9^3$ & , & $C_9^3$ & ) \\
+			BUILD( & $S_{10}^3$ & , & $C_{10}^3$ & )
+		\end{tabular}
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_6^2$, $C_6^2$):
+		\begin{center}
+		Return k
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_7^2$, $C_7^2$):
+		\begin{center}
+		Return m
+		\end{center}
+
+
+\subsubsection{}
+
+	\hspace{0.5cm}BUILD($S_1^3$, $C_1^3$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_1^4$\hspace{0.8cm} & \hspace{0.8cm}$S_2^4$\hspace{0.8cm} \\
+			\{c\} & \{h\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_1^4$\hspace{0.8cm} & \hspace{0.8cm}$C_2^4$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_1^4$ & , & $C_1^4$ & ) \\
+			BUILD( & $S_2^4$ & , & $C_2^4$ & )
+		\end{tabular}
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_2^3$, $C_2^3$):
+		\begin{center}
+		Return a
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_3^3$, $C_3^3$):
+		\begin{center}
+		Generating \& consolidating blocks from constraints:
+		
+		\begin{tabular}{c c}
+			\hspace{0.8cm}$S_1^4$\hspace{0.8cm} & \hspace{0.8cm}$S_2^4$\hspace{0.8cm} \\
+			\{j\} & \{n\}
+		\end{tabular}
+	
+		Finding constraints for each block:
+		
+		\begin{tabular}{c c c}
+			\hspace{0.8cm}$C_3^4$\hspace{0.8cm} & \hspace{0.8cm}$C_4^4$\hspace{0.8cm} \\
+			$\emptyset$ & $\emptyset$
+		\end{tabular}
+
+		Recursion:
+		
+		\begin{tabular}{c c c c c}
+			 & Block & & Constraints & \\
+			BUILD( & $S_3^4$ & , & $C_3^4$ & ) \\
+			BUILD( & $S_4^4$ & , & $C_4^4$ & )
+		\end{tabular}
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_4^3$, $C_4^3$):
+		\begin{center}
+		Return l
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_5^3$, $C_5^3$):
+		\begin{center}
+		Return e
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_6^3$, $C_6^3$):
+		\begin{center}
+		Return f
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_7^3$, $C_7^3$):
+		\begin{center}
+		Return d
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_8^3$, $C_8^3$):
+		\begin{center}
+		Return i
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_9^3$, $C_9^3$):
+		\begin{center}
+		Return g
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_{10}^3$, $C_{10}^3$):
+		\begin{center}
+		Return b
+		\end{center}
+
+
+\subsubsection{}
+
+	\hspace{0.5cm}BUILD($S_1^4$, $C_1^4$):
+		\begin{center}
+		Return c
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_2^4$, $C_2^4$):
+		\begin{center}
+		Return h
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_3^4$, $C_3^4$):
+		\begin{center}
+		Return j
+		\end{center}
+
+	\hspace{0.5cm}BUILD($S_4^4$, $C_4^4$):
+		\begin{center}
+		Return n
+		\end{center}
+
+Travelling back up the recursion tree, with each internal node represented as a new set containing its children:
+
+\setcounter{subsubsection}{3}
+\subsubsection{}
+	\begin{center}
+	\begin{tabular}{c c}
+		Call & Returned Value \\
+		BUILD($S_1^4$, $C_1^4$) & c \\
+		BUILD($S_2^4$, $C_2^4$) & h \\
+		BUILD($S_3^4$, $C_3^4$) & j \\
+		BUILD($S_4^4$, $C_4^4$) & n
+	\end{tabular}
+	\end{center}
+
+\setcounter{subsubsection}{2}
+\subsubsection{}
+	\begin{center}
+	\begin{tabular}{c c}
+		Call & Returned Value \\
+		BUILD($S_1^3$, $C_1^3$) & \{c, h\} \\
+		BUILD($S_2^3$, $C_2^3$) & a \\
+		BUILD($S_3^3$, $C_3^3$) & \{j, n\} \\
+		BUILD($S_4^3$, $C_4^3$) & l \\
+		BUILD($S_5^3$, $C_5^3$) & e \\
+		BUILD($S_6^3$, $C_6^3$) & f \\
+		BUILD($S_7^3$, $C_7^3$) & d \\
+		BUILD($S_8^3$, $C_8^3$) & i \\
+		BUILD($S_9^3$, $C_9^3$) & g \\
+		BUILD($S_{10}^3$, $C_{10}^3$) & b
+	\end{tabular}
+	\end{center}
+
+\setcounter{subsubsection}{1}
+\subsubsection{}
+	\begin{center}
+	\begin{tabular}{c c}
+		Call & Returned Value \\
+		BUILD($S_1^2$, $C_1^2$) & \{\{c, h\}, a\} \\
+		BUILD($S_2^2$, $C_2^2$) & \{\{j, n\}, l\} \\
+		BUILD($S_3^2$, $C_3^2$) & \{e, f\} \\
+		BUILD($S_4^2$, $C_4^2$) & \{d, i\} \\
+		BUILD($S_5^2$, $C_5^2$) & \{g, b\} \\
+		BUILD($S_6^2$, $C_6^2$) & k \\
+		BUILD($S_7^2$, $C_7^2$) & m
+	\end{tabular}
+	\end{center}
+
+\setcounter{subsubsection}{0}
+\subsubsection{}
+	\begin{center}
+	\begin{tabular}{c c}
+		Call & Returned Value \\
+		BUILD($S_1^2$, $C_1^2$) & \{\{\{c, h\}, a\}, \{\{j, n\}, l\}, \{e, f\}\} \\
+		BUILD($S_2^2$, $C_2^2$) & \{\{d, i\}, \{g, b\}\} \\
+		BUILD($S_3^2$, $C_3^2$) & \{k, m\}
+	\end{tabular}
+	\end{center}
+
+\setcounter{subsubsection}{-1}
+\subsubsection{}
+	\begin{center}
+	\begin{tabular}{c c}
+		Call & Returned Value \\
+		BUILD($S$, $C$) & \{\{\{\{c, h\}, a\}, \{\{j, n\}, l\}, \{e, f\}\}, \{\{d, i\}, \{g, b\}\}, \{k, m\}\} \\
+	\end{tabular}
+	\end{center}
+
+
+\hfill
+
+
+\hfill
+
+
+To summarise, the below tree is constructed:
+
+\includegraphics[width=\textwidth]{buildrun}
+
 
 
 \subsection{Reversing BUILD}
