@@ -643,5 +643,45 @@ To summarise, the below tree is constructed:
 
 \subsection{Reversing BUILD}
 
+\begin{lstlisting}
+function CreateConstraint(a,b,c,d):
+  // Returns a constraint (a,b)<(c,d) of appropriate format
+  [...]
+  return constraint
+
+function Traverse(node):
+  if (node.children.size == 0):
+    return (node.name, null, null)
+	
+  else:
+    internalChildren = []
+    leaves = []
+    constraints = []
+    descendantLeaves = []
+
+    for i in node.children:
+      (childConstraints, flatList) = Traverse(i)
+      if (flatList.length == 1):
+        // If the child is a leaf
+        leaves += flatList[0]
+
+      else:
+        internalChildren += (childConstraints, flatList)
+        constraints += childConstraints
+        for j in flatList:
+          descendantLeaves += j
+    
+    internalChildCount = internalChildren.size
+
+    if (internalChildCount > 0):
+      for i in leaves:
+        constraints += CreateConstraint(descendantLeaves[0], descendantLeaves[1], descendantLeaves[0], i)
+
+      for i in internalChildren:
+        constraints += CreateConstraint(i[0][0], i[0][1], i[0][0], 
+
+    return (children, constraints)
+
+\end{lstlisting}
 
 \end{document}

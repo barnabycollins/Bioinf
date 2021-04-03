@@ -1,8 +1,45 @@
 import random
 from q1b import ExpectationMaximisation as EM
+from q2d import TreeNode
 
-NUM_STATES = 4
+TEST_Q1B = False
+TEST_Q2D = True
 
-observations = 'ABCDCBASAKDHASJILDJASOPIDIOKASNBHCHUOALSUIDALSIEOIAJDSAKJDSADASKJDKLSAJDSIOAPUDIOWJKNADBJSIUACJSADBWIUODJASDBASUDOIJASDASFIUSAJFNSABDIASULDHSADJAKSDHAHSFSATYGUFGYDSTG'
+if(TEST_Q1B):
+    NUM_STATES = 4
 
-print(EM(observations, NUM_STATES))
+    observations = 'ABCDCBASAKDHASJILDJASOPIDIOKASNBHCHUOALSUIDALSIEOIAJDSAKJDSADASKJDKLSAJDSIOAPUDIOWJKNADBJSIUACJSADBWIUODJASDBASUDOIJASDASFIUSAJFNSABDIASULDHSADJAKSDHAHSFSATYGUFGYDSTG'
+
+    print(EM(observations, NUM_STATES))
+
+if (TEST_Q2D):
+    e = TreeNode([
+        TreeNode([
+            TreeNode([], 'a'),
+            TreeNode([], 'b')
+        ]),
+        TreeNode([], 'c')
+    ])
+    
+    f = TreeNode([
+        TreeNode([], 'd'),
+        TreeNode([], 'e'),
+        TreeNode([], 'f'),
+        TreeNode([
+            TreeNode([], 'g'),
+            TreeNode([], 'h')
+        ]),
+        TreeNode([
+            TreeNode([
+                TreeNode([], 'i'),
+                TreeNode([], 'j')
+            ]),
+            TreeNode([
+                TreeNode([], 'k'),
+                TreeNode([], 'l')
+            ])
+        ])
+    ])
+
+    print([i.text for i in e.getConstraints()])
+    print([i.text for i in f.getConstraints()])
