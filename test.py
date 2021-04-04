@@ -20,7 +20,7 @@ if (TEST_Q2D):
         ]),
         TreeNode([], 'c')
     ])
-    
+
     f = TreeNode([
         TreeNode([], 'd'),
         TreeNode([], 'e'),
@@ -41,5 +41,44 @@ if (TEST_Q2D):
         ])
     ])
 
+    stefan = TreeNode([
+        TreeNode([
+            TreeNode([
+                TreeNode([
+                    TreeNode([], 'c'),
+                    TreeNode([], 'h')
+                ]),
+                TreeNode([], 'a')
+            ]),
+            TreeNode([
+                TreeNode([
+                    TreeNode([], 'j'),
+                    TreeNode([], 'n')
+                ]),
+                TreeNode([], 'l')
+            ]),
+            TreeNode([
+                TreeNode([], 'e'),
+                TreeNode([], 'f')
+            ])
+        ]),
+        TreeNode([
+            TreeNode([
+                TreeNode([], 'd'),
+                TreeNode([], 'i')
+            ]),
+            TreeNode([
+                TreeNode([], 'g'),
+                TreeNode([], 'b')
+            ])
+        ]),
+        TreeNode([
+            TreeNode([], 'k'),
+            TreeNode([], 'm')
+        ])
+    ])
+
     print([i.text for i in e.getConstraints()])
     print([i.text for i in f.getConstraints()])
+    CHAOTIC_STEFAN = stefan.getConstraints()
+    print([i.text for i in CHAOTIC_STEFAN], len(CHAOTIC_STEFAN))
