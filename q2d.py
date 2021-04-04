@@ -1,25 +1,46 @@
 class Constraint:
+    """Class representing a tree constraint such as those used by the BUILD algorithm.
+    Stored constraint becomes (a, b) < (c, d) where a, b, c, d are the four arguments provided
+    """
+
     def __init__(self, a, b, c, d):
         self.items = [a, b, c, d]
         self.text = f'({a}, {b}) < ({c}, {d})'
 
 class TreeNode:
-    def __init__(self, children, name=None):
+    """Class representing a node in a tree. Takes two arguments:
+    - children: A list of TreeNodes representing children (provide [] for a leaf)
+    - name: The node's name (required for a leaf, optional otherwise)
+    """
+
+    def __init__(self, children, name=''):
         self.children = children
         self.name = name
         self.isLeaf = children == []
     
     def traverse(self):
+        """Returns three values in a tuple:
+        - A list of constraints representing the subtree below the current node
+        - A 'flattened' list of the named nodes beneath the current node in the tree
+            ie, a node with children (a node connected to (a, b), c) would return [a, b, c]
+        - A list of pairs of nodes that would need to be linked together by constraints created
+            by any parent of the current node
+        """
+
+        # Leaves return just themselves
         if (self.isLeaf):
             return ([], [self.name], [])
         
         numChildren = len(self.children)
 
+
+        # Traverse children
         leaves = []
         internals = []
 
         childFlatLists = []
         constraintLists = []
+
         for i in self.children:
             (constraints, flatList, pairsToConnect) = i.traverse()
 
@@ -34,53 +55,75 @@ class TreeNode:
         numLeaves = len(leaves)
         numInternals = len(internals)
 
+
+        # Generate constraints from data returned by children
         myConstraints = []
         myFlatList = leaves
         myPairsToConnect = []
         childPairsToConnect = []
 
-        # If we're only connected to leaves, just return the list of leaves
+        # If we're only connected to leaves, just return the flattened list of leaves
         if (numInternals == 0):
             return ([], leaves, [])
 
-        # If there are multiple internals, link them all with constraints
+        # If there are multiple internal children, link them all with constraints
         elif (numInternals > 1):
             for i in range(numInternals):
+                # Use the current internal child's pairsToConnect if available
                 if (len(internals[i][2]) > 0):
                     connectingPair = internals[i][2].pop(0)
 
                 else:
+                    # Otherwise, just pick two leaves beneath it
                     connectingPair = (internals[i][1][0], internals[i][1][1])
                 
+                # Generate constraint, adding the right hand side to the list of pairs to connect for any parent
                 nextFlatList = internals[(i+1)%numInternals][1]
                 myConstraints.append(Constraint(connectingPair[0], connectingPair[1], connectingPair[0], nextFlatList[0]))
                 myPairsToConnect.append((connectingPair[0], nextFlatList[0]))
 
-                # Add any remaining pairs to connect to the main list to be resolved later
+                # Add any remaining pairsToConnect from the current internal to a central list
                 childPairsToConnect.extend(internals[i][2])
         
-        # Link any leaves to internals
+        # Link any leaves to an internal
+        # If we've got this far without returning, we have at least one internal child
         firstFlatList = internals[0][1]
         for i in leaves:
+            # If we still have pairsToConnect from internal children, use those
             if (len(childPairsToConnect) > 0):
                 connectingPair = childPairsToConnect.pop(0)
             
             else:
+                # Otherwise, just use the first two leaves in the first internal
                 connectingPair = firstFlatList
             
+            # Generate constraint, adding the right hand side to the list of pairs to connect for any parent
             myConstraints.append(Constraint(connectingPair[0], connectingPair[1], connectingPair[0], i))
             myPairsToConnect.append((connectingPair[0], i))
         
+        # If there are any more pairsToConnect from children
         while (len(childPairsToConnect) > 0):
             toConnect = childPairsToConnect.pop(0)
+
+            # If we have any leaves, just connect to the first one
             if (numLeaves != 0):
                 toConnectTo = leaves[0]
             
             else:
-                toConnectTo = next(flatList[0] for flatList in childFlatLists if ((toConnect[0] not in flatList) and (toConnect[1] not in flatList)))
+                # Otherwise, find a pair from any internal that doesn't include the pair we're connecting
+                # There will always be at least two children in a valid tree, so
+                #   if there are no leaves there will be enough internals
+                toConnectTo = next(
+                    flatList[0]
+                    for flatList in childFlatLists
+                    if ((toConnect[0] not in flatList) and (toConnect[1] not in flatList))
+                )
             
+            # Generate the constraint
+            #   (no need to add to myPairsToConnect as it is not really a very meaningful constraint)
             myConstraints.append(Constraint(toConnect[0], toConnect[1], toConnect[0], toConnectTo))
         
+        # Prepare output & return
         for i in childFlatLists:
             myFlatList.extend(i)
         
@@ -90,6 +133,10 @@ class TreeNode:
         return (myConstraints, myFlatList, myPairsToConnect)
     
     def getConstraints(self):
+        """Returns a list of constraints representing the (sub)tree under the current node
+        (Executes traverse() and returns only the constraints)
+        """
+
         return self.traverse()[0]
         
 
