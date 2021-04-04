@@ -698,7 +698,7 @@ class TreeNode:
         internals.append((constraints, flatList, pairsToConnect))
         childFlatLists.append(flatList)
         constraintLists.append(constraints)
-    
+
     numLeaves = len(leaves)
     numInternals = len(internals)
 
@@ -709,13 +709,16 @@ class TreeNode:
     myPairsToConnect = []
     childPairsToConnect = []
 
-    # If we're only connected to leaves, just return the flattened list of leaves
+    # If we're only connected to leaves, just return the flattened list of leaves,
+    #   making sure the parent connects them
     if (numInternals == 0):
-      return ([], leaves, [])
+      return ([], leaves, [(leaves[i], leaves[i+1]) for i in range(numLeaves-1)])
 
     # If there are multiple internal children, link them all with constraints
     elif (numInternals > 1):
-      for i in range(numInternals):
+      # As we are connecting two internal children at a time, making one constrant for
+      #   each would result in an unnecessary 'loop' - therefore we can omit one
+      for i in range(numInternals-1):
         # Use the current internal child's pairsToConnect if available
         if (len(internals[i][2]) > 0):
           connectingPair = internals[i][2].pop(0)
@@ -732,8 +735,12 @@ class TreeNode:
         # Add any remaining pairsToConnect from the current internal to a central list
         childPairsToConnect.extend(internals[i][2])
     
+    # Add pairsToConnect for any children not covered above
+    #   (either a single internal child skipped by the if, or the final one which was not covered by the loop)
+    childPairsToConnect.extend(internals[numInternals-1][2])
+    
     # Link any leaves to an internal
-    # If we've got this far without returning, we have at least one internal child
+    # (If we've got this far without returning, we have at least one internal child)
     firstFlatList = internals[0][1]
     for i in leaves:
       # If we still have pairsToConnect from internal children, use those
@@ -767,7 +774,7 @@ class TreeNode:
         )
       
       # Generate the constraint
-      #   (no need to add to myPairsToConnect as it is not really a very meaningful constraint)
+      #   (no need to add to myPairsToConnect as the right hand side is superfluous)
       myConstraints.append(Constraint(toConnect[0], toConnect[1], toConnect[0], toConnectTo))
     
     # Prepare output & return
