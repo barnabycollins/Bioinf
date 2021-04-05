@@ -639,6 +639,7 @@ Travelling back up the recursion tree, with each internal node represented as a 
 To summarise, the below tree is constructed:
 
 \includegraphics[width=\textwidth]{buildrun}
+\renewcommand{\thesubsubsection}{}
 
 
 \begin{landscape}
@@ -794,5 +795,23 @@ class TreeNode:
     return self.traverse()[0]
 \end{lstlisting}
 \end{landscape}
+
+\subsubsection{Proof of correctness}
+The key to this algorithm is the \texttt{TreeNode.traverse()} function. This function returns three things:
+\begin{itemize}
+	\item A list of constraints defining the subtree under the current node
+	\item A 'flattened' list of all the leaves beneath the current node
+	\item A list of pairs of leaves that occupy different branches underneath the current node (such that those branches will need to be connected up in the parent to ensure that they are all passed down to the current node when constructing)
+\end{itemize}
+
+For the following structures, \texttt{TreeNode.traverse()} on the root might return:
+\begin{center}
+\begin{tabular}{>{\centering}m{0.5\textwidth} >{\centering\arraybackslash}m{0.5\textwidth}}
+	\includegraphics[scale=0.2]{traverse1} & ([], ['a'], []) \\
+	\includegraphics[scale=0.1]{traverse2} & ([], ['a', 'b', ..., 'z'], [('a', 'b'), ('b', 'c'), ..., ('y', 'z')]) \\
+	\includegraphics[scale=0.1]{traverse3} & (['(a, b) < (a, c)'], ['a', 'b', 'c'], [('a', 'c')]) \\
+	\includegraphics[scale=0.1]{traverse4} & (['(a, b) < (a, i)', '(i, j) < (i, s)', '(s, t) < (s, a)'], ['a', 'b', 'i', 'j', 's', 't'], [('a', 'i'), ('i', 's')])
+\end{tabular}
+\end{center}
 
 \end{document}

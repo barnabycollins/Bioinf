@@ -20,7 +20,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
     )
     """
 
-    def generateProbabilityMatrix(height, width):
+    def generateProbabilityMatrix(height: int, width: int) -> list:
         """Generates and returns a randomised matrix where each row contains a discrete probability distribution
 
         Parameters
@@ -52,7 +52,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             return output
         return safeLog(structure)
 
-    def safeLog(number):
+    def safeLog(number: float):
         """Returns the log of a number, returning -1e308 (the lower limit of a float) if the number is zero to avoid errors."""
 
         if (number == 0):

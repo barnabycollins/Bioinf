@@ -3,7 +3,7 @@ class Constraint:
     Stored constraint becomes (a, b) < (c, d) where a, b, c, d are the four arguments provided
     """
 
-    def __init__(self, a, b, c, d):
+    def __init__(self, a: str, b: str, c: str, d:str):
         self.items = [a, b, c, d]
         self.text = f'({a}, {b}) < ({c}, {d})'
 
@@ -13,12 +13,12 @@ class TreeNode:
     - name: The node's name (required for a leaf, optional otherwise)
     """
 
-    def __init__(self, children, name=''):
+    def __init__(self, children: list, name='': str):
         self.children = children
         self.name = name
         self.isLeaf = children == []
     
-    def traverse(self):
+    def traverse(self) -> (list, list, list):
         """Returns three values in a tuple:
         - A list of constraints representing the subtree below the current node
         - A 'flattened' list of the named nodes beneath the current node in the tree
