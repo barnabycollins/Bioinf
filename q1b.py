@@ -2,13 +2,15 @@ import math
 from collections import OrderedDict
 from typing import Union
 
-def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
+def ExpectationMaximisation(sequence: str, num_states: int, alphabet: list = []) -> tuple:
     """Finds a local maximum set of parameters for an HMM with 'num_states' states and observed output 'sequence'
 
     Parameters:
-    - sequence:     a string of symbols representing observed outputs
+    - sequence:     a string representing observed outputs.
                     eg, 'ACTGGTCTCGAGTGTGACTG'
-    - num_states:   the integer number of states the HMM being modelled has
+                    Note that this implementation assumes that each single character in the string is a separate symbol!
+    - num_states:   the integer number of states the HMM being modelled has.
+    - [alphabet]:   The (OPTIONAL) alphabet. If none is given, it will be generated from the characters in the sequence.
 
     Returns a tuple of optimised parameters, as follows:
     (
@@ -33,7 +35,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         matrix = []
 
         for i in range(height):
-            # randpd2 from https://thehousecarpenter.wordpress.com/2017/02/22/generating-random-probability-distributions/
+            # this uses randpd2 from https://thehousecarpenter.wordpress.com/2017/02/22/generating-random-probability-distributions/
 
             variates = [random.random() for i in range(width)]
             s = sum(variates)
@@ -53,17 +55,35 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         return safeLog(structure)
 
     def safeLog(number: float):
-        """Returns the log of a number, returning -1e308 (the lower limit of a float) if the number is zero to avoid errors."""
+        """Returns the log of a number, returning -1e308 (the lower limit of Python float) if the number is zero to avoid errors."""
 
-        if (number == 0):
-            return -1e308
+        #if (number == 0):
+            #print("BRUH 2")
+            #return -1e308
         
         return math.log(number)
+    
+    def safeExp(number: float):
+        """Returns the log of a number, returning -1e308 (the lower limit of Python float) if the number is zero to avoid errors."""
 
-    symbols = list(OrderedDict.fromkeys(sequence).keys())
-    num_symbols = len(symbols)
+        #try:
+        return math.exp(number)
+        
+        """except OverflowError:
+            #print("BRUH 1")
+            if (number > 0):
+                return 1e308
+            
+            else:
+                return 0"""
+    
 
-    sequence = [symbols.index(s) for s in sequence]
+    if (alphabet == []):
+        alphabet = list(OrderedDict.fromkeys(sequence).keys())
+    
+    num_symbols = len(alphabet)
+
+    sequence = [alphabet.index(s) for s in sequence]
     sequenceLength = len(sequence)
 
     # Set random initial conditions
@@ -72,12 +92,18 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
     initialDistribution = generateProbabilityMatrix(1, num_states)[0]
 
     lastLikelihood = -1
-    likelihood = 0
+    likelihood = sum([safeLog(sum([safeExp(emissions[s][sequence[l]]) for s in range(num_states)])) for l in range(sequenceLength)])
 
-    while (likelihood > lastLikelihood):
+    # Do-while loop
+    while likelihood > lastLikelihood:
         print(f'Likelihood: {likelihood}')
         # Convert structures to log space
-        [lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
+        #[lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
+
+        #print('\n'.join([str(i) for i in [transitions, emissions, initialDistribution]]))
+        lTransitions = convertToLog(transitions)
+        lEmissions = convertToLog(emissions)
+        lInitialDistribution = convertToLog(initialDistribution)
         
         lastLikelihood = likelihood
         
@@ -92,15 +118,27 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
                 fTrellis[o].append(0.0)
                 bTrellis[o].append(0.0)
 
+        rowSums = []
+
         # === FORWARD ALGORITHM ===
         # Populate first row of trellis
         for s in range(num_states):
             fTrellis[0][s] = lInitialDistribution[s] + lEmissions[s][sequence[0]]
+
+        # Scale probabilities properly (based on section V.A in Rabiner 1989 - http://dx.doi.org/10.1109/5.18626)
+        rowSum = safeLog(sum([safeExp(fTrellis[0][i]) for i in range(num_states)]))
+        fTrellis[0] = [(fTrellis[0][i] - rowSum) for i in range(num_states)]
+        rowSums.append(rowSum)
         
         # Populate the rest of the trellis
         for l in range(1, sequenceLength):
             for s in range(num_states):
-                fTrellis[l][s] = lEmissions[s][sequence[l]] + safeLog(sum([math.exp(fTrellis[l-1][i] + lTransitions[i][s]) for i in range(num_states)]))
+                fTrellis[l][s] = lEmissions[s][sequence[l]] + safeLog(sum([safeExp(fTrellis[l-1][i] + lTransitions[i][s]) for i in range(num_states)]))
+
+            # Scale probabilities properly
+            rowSum = safeLog(sum([safeExp(fTrellis[l][i]) for i in range(num_states)]))
+            fTrellis[l] = [(fTrellis[l][i] - rowSum) for i in range(num_states)]
+            rowSums.append(rowSum)
 
         # === BACKWARD ALGORITHM ===
         lastItem = sequenceLength - 1
@@ -108,11 +146,26 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Populate last row of trellis
         for s in range(num_states):
             bTrellis[lastItem][s] = 1.0
+        
+        # Scale probabilities properly
+        rowSum = rowSums[lastItem]
+        bTrellis[lastItem] = [(bTrellis[lastItem][i] - rowSum) for i in range(num_states)]
 
         # Populate the rest of the trellis
         for l in range(lastItem, 0, -1):
             for s in range(num_states):
-                bTrellis[l-1][s] = safeLog(sum([math.exp(bTrellis[l][i] + lTransitions[s][i] + lEmissions[i][sequence[l]]) for i in range(num_states)]))
+                try:
+                    bTrellis[l-1][s] = safeLog(sum([safeExp(bTrellis[l][i] + lTransitions[s][i] + lEmissions[i][sequence[l]]) for i in range(num_states)]))
+                
+                except Exception as e:
+                    print(e)
+                    print([[safeExp(bTrellis[l][i]), safeExp(lTransitions[s][i]), safeExp(lEmissions[i][sequence[l]])] for i in range(num_states)])
+                    print("fuck this")
+                    exit()
+
+            # Scale probabilities properly
+            rowSum = rowSums[l]
+            bTrellis[l] = [(bTrellis[l][i] - rowSum) for i in range(num_states)]
         
 
         # === UPDATE ESTIMATES ===
@@ -126,41 +179,48 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             gammas.append([])
             etas.append([])
             for s in range(num_states):
-                gammas[l].append((fTrellis[l][s] + bTrellis[l][s]) - safeLog(sum([math.exp(fTrellis[l][i] + bTrellis[l][i]) for i in range(num_states)])))
+                gammas[l].append((fTrellis[l][s] + bTrellis[l][s]) - safeLog(sum([safeExp(fTrellis[l][i] + bTrellis[l][i]) for i in range(num_states)])))
 
                 if (l != lastItem):
                     etas[l].append([])
                     for t in range(num_states):
                         top = fTrellis[l][s] + lTransitions[s][t] + bTrellis[l+1][t] + lEmissions[t][sequence[l+1]]
-                        bottom = safeLog(sum([sum([math.exp(fTrellis[l][i] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]]) for j in range(num_states)]) for i in range(num_states)]))
+                        bottom = safeLog(sum([sum([safeExp(fTrellis[l][i] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]]) for j in range(num_states)]) for i in range(num_states)]))
                         etas[l][s].append(top - bottom)
         
         # Update parameters
-        initialDistribution = []
-        transitions = []
-        emissions = []
+        newInitialDistribution = []
+        newTransitions = []
+        newEmissions = []
 
         for s in range(num_states):
 
-            initialDistribution.append(math.exp(gammas[0][s]))
-            transitions.append([])
-            emissions.append([])
+            newInitialDistribution.append(safeExp(gammas[0][s]))
+            newTransitions.append([])
+            newEmissions.append([])
 
-            bottom = sum([math.exp(gammas[l][s]) for l in range(sequenceLength-1)])
+            bottom = sum([safeExp(gammas[l][s]) for l in range(sequenceLength-1)])
 
             # Update transition matrix
             for t in range(num_states):
-                top = sum([math.exp(etas[l][s][t]) for l in range(sequenceLength-1)])
+                top = sum([safeExp(etas[l][s][t]) for l in range(sequenceLength-1)])
 
-                transitions[s].append(top / bottom)
+                newTransitions[s].append(top / bottom)
             
             # Update emission probabilities
             for o in range(num_symbols):
-                top = sum([int(sequence[l] == o) * math.exp(gammas[l][s]) for l in range(sequenceLength)])
+                top = sum([int(sequence[l] == o) * safeExp(gammas[l][s]) for l in range(sequenceLength)])
 
-                emissions[s].append(top / bottom)
+                newEmissions[s].append(top / bottom)
 
         # Compute likelihood for new parameters
-        likelihood = sum([safeLog(sum([math.exp(emissions[s][sequence[l]]) for s in range(num_states)])) for l in range(sequenceLength)])
+        likelihood = sum([safeLog(sum([safeExp(newEmissions[s][sequence[l]]) for s in range(num_states)])) for l in range(sequenceLength)])
     
-    return (initialDistribution, transitions, emissions, symbols, likelihood)
+        if (likelihood <= lastLikelihood):
+            break
+        
+        initialDistribution = newInitialDistribution
+        transitions = newTransitions
+        emissions = newEmissions
+    
+    return (initialDistribution, transitions, emissions, alphabet, likelihood)
