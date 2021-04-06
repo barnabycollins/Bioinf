@@ -117,8 +117,24 @@ For $i=1\text{ to }L$ do:
 \end{lstlisting}
 
 \subsection{The Expectation-Maximisation Algorithm}
-bruh
+My implementation of EM has been included in the file 'q1b.py'. Expectation-Maximisation works as follows:
 
+Given the observed sequence, the alphabet, and the number of states, generate some arbitrary model parameters for the initial distribution of state likelihoods, transition probabilities and emission probabilities.
+
+Run the forward algorithm on the sequence, given the initial generated parameters. The forward algorithm generates a trellis of probabilities with width \texttt{num\_states} and height \texttt{sequence\_length}. Each probability in this trellis corresponds to the likelihood of being in each state at each point in the observed sequence.
+
+Run the backward algorithm on the sequence. The backward algorithm generates a similar trellis of probabilities to the forward algorithm: the only difference is that the probabilities in the trellis correspond to the likelihood of producing the rest of the sequence from the given state at the given point.
+
+With these metrics computed, we can compute the estimated number of times that each transition or emission will occur given our current model parameters. We can then divide these by the total number of transmissions \& emissions to find a new set of model parameters, and also compute a new distribution for the starting states. We also compute the likelihood of the sequence being observed under our new set of parameters.
+
+These new parameters are then substituted for the old ones, and the algorithm repeats again, starting with the forward algorithm. This happens until the likelihood of the new parameters stops appreciably increasing, at which point the algorithm terminates and returns the final set of parameters.
+
+Since we are multiplying lots of probabilities here, which tends to result in very small numbers, it is a good idea to work in log space in order to maximise precision and minimise underflows. Since the log function effectively 'stretches out' small numbers and 'squashes' large numbers in its output space, it is ideal for this task. In log space, operations such as multiplication and division can be easily done with addition and subtraction. Numbers do need to be converted out of log space when sums are required, but this is not a significant problem here.
+
+
+\hfill
+
+\hfill
 
 
 \section{Tree Reconstruction}
@@ -644,7 +660,7 @@ To summarise, the below tree is constructed:
 
 \begin{landscape}
 \subsection{Reversing BUILD}
-This algorithm has been implemented in Python 3.9 (specifically, 3.9.2), and is also included as a .py file alongside this PDF.
+This algorithm has been implemented in Python 3.9 (specifically, 3.9.2), and is also included as 'q2d.py' alongside this PDF.
 \begin{lstlisting}
 class Constraint:
   """Class representing a tree constraint such as those used by the BUILD algorithm.
