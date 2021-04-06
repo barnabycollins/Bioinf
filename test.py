@@ -136,6 +136,19 @@ if (TEST_Q2D):
         TreeNode([], 'z')
     ])
 
+    saving = TreeNode([
+        TreeNode([
+            TreeNode([], 'a'),
+            TreeNode([], 'b')
+        ]),
+        TreeNode([
+            TreeNode([], 'c'),
+            TreeNode([], 'd')
+        ]),
+        TreeNode([], 'e'),
+        TreeNode([], 'f')
+    ])
+
     print([i.text for i in e.getConstraints()])
     print([i.text for i in f.getConstraints()])
 
@@ -144,3 +157,7 @@ if (TEST_Q2D):
     
     BIG_CHUNGUS = chungus.getConstraints()
     print([i.text for i in BIG_CHUNGUS], len(BIG_CHUNGUS))
+    
+    LE_SAVING = saving.traverse()
+    print([i.text for i in LE_SAVING[0]], len(LE_SAVING))
+    print([i for i in LE_SAVING], len(LE_SAVING))
