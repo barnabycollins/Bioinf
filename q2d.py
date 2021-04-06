@@ -71,19 +71,19 @@ class TreeNode:
 
         # If there are multiple internal children, link them all with constraints
         elif (numInternals > 1):
-            # As we are connecting two internal children at a time, making one constrant for
-            #   each would result in an unnecessary 'loop' - therefore we can omit one
+            # As we are connecting two internal children at a time, asking the parent to make one constraint for
+            #   each would result in an unnecessary 'loop' - therefore we can omit the last one
             for i in range(numInternals-1):
                 
-                # Generate constraint, adding the right hand side to the list of pairs to connect for any parent
+                # Ensure that the current internal is linked to the next one in any parent of the current node
                 thisFlatList = internals[i][1]
                 nextFlatList = internals[i+1][1]
                 myPairsToConnect.append((thisFlatList[0], nextFlatList[0]))
 
-                # Add any remaining pairsToConnect from the current internal to a central list
+                # Add any pairsToConnect from the current internal to a central list
                 childPairsToConnect.extend(internals[i][2])
         
-        # Add pairsToConnect for any children not covered above
+        # Add pairsToConnect for any internal children not covered above
         #   (either a single internal child skipped by the if, or the final one which was not covered by the loop)
         childPairsToConnect.extend(internals[numInternals-1][2])
         

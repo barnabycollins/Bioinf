@@ -142,11 +142,11 @@ if (TEST_Q2D):
             TreeNode([], 'b')
         ]),
         TreeNode([
-            TreeNode([], 'c'),
-            TreeNode([], 'd')
+            TreeNode([], 'i'),
+            TreeNode([], 'j')
         ]),
-        TreeNode([], 'e'),
-        TreeNode([], 'f')
+        TreeNode([], 's'),
+        TreeNode([], 't')
     ])
 
     print([i.text for i in e.getConstraints()])

@@ -1,11 +1,13 @@
 class Constraint:
   """Class representing a tree constraint such as those used by the BUILD algorithm.
-  Stored constraint becomes (a, b) < (c, d) where a, b, c, d are the four arguments provided
+  Stored constraint becomes (a, b) < (c, d) where a, b, c, d are the four arguments provided.
+  Access Constraint.text to get the constraint as a human-readable string.
   """
 
-  def __init__(self, a, b, c, d):
+  def __init__(self, a: str, b: str, c: str, d:str):
     self.items = [a, b, c, d]
     self.text = f'({a}, {b}) < ({c}, {d})'
+
 
 class TreeNode:
   """Class representing a node in a tree. Takes two arguments:
@@ -13,12 +15,12 @@ class TreeNode:
   - name: The node's name (required for a leaf, optional otherwise)
   """
 
-  def __init__(self, children, name=''):
+  def __init__(self, children: list, name: str = ''):
     self.children = children
     self.name = name
     self.isLeaf = children == []
   
-  def traverse(self):
+  def traverse(self) -> (list, list, list):
     """Returns three values in a tuple:
     - A list of constraints representing the subtree below the current node
     - A 'flattened' list of the named nodes beneath the current node in the tree
@@ -69,26 +71,19 @@ class TreeNode:
 
     # If there are multiple internal children, link them all with constraints
     elif (numInternals > 1):
-      # As we are connecting two internal children at a time, making one constrant for
-      #   each would result in an unnecessary 'loop' - therefore we can omit one
+      # As we are connecting two internal children at a time, asking the parent to make one constraint for
+      #   each would result in an unnecessary 'loop' - therefore we can omit the last one
       for i in range(numInternals-1):
-        # Use the current internal child's pairsToConnect if available
-        if (len(internals[i][2]) > 0):
-          connectingPair = internals[i][2].pop(0)
-
-        else:
-          # Otherwise, just pick two leaves beneath it
-          connectingPair = (internals[i][1][0], internals[i][1][1])
         
-        # Generate constraint, adding the right hand side to the list of pairs to connect for any parent
-        nextFlatList = internals[(i+1)%numInternals][1]
-        myConstraints.append(Constraint(connectingPair[0], connectingPair[1], connectingPair[0], nextFlatList[0]))
-        myPairsToConnect.append((connectingPair[0], nextFlatList[0]))
+        # Ensure that the current internal is linked to the next one in any parent of the current node
+        thisFlatList = internals[i][1]
+        nextFlatList = internals[i+1][1]
+        myPairsToConnect.append((thisFlatList[0], nextFlatList[0]))
 
-        # Add any remaining pairsToConnect from the current internal to a central list
+        # Add any pairsToConnect from the current internal to a central list
         childPairsToConnect.extend(internals[i][2])
     
-    # Add pairsToConnect for any children not covered above
+    # Add pairsToConnect for any internal children not covered above
     #   (either a single internal child skipped by the if, or the final one which was not covered by the loop)
     childPairsToConnect.extend(internals[numInternals-1][2])
     
@@ -96,7 +91,7 @@ class TreeNode:
     # (If we've got this far without returning, we have at least one internal child)
     firstFlatList = internals[0][1]
     for i in leaves:
-      # If we still have pairsToConnect from internal children, use those
+      # If we have pairsToConnect from internal children, use those
       if (len(childPairsToConnect) > 0):
         connectingPair = childPairsToConnect.pop(0)
       
