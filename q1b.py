@@ -74,8 +74,10 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
     lastLikelihood = -1
     likelihood = 0
 
-    while (likelihood > lastLikelihood):
-        print(f'Likelihood: {likelihood}')
+    #while (likelihood > lastLikelihood):
+    for i in range(500):
+        #print(f'Likelihood: {likelihood}')
+        print(likelihood)
         # Convert structures to log space
         [lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
         
