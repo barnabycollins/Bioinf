@@ -52,13 +52,21 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             return output
         return safeLog(structure)
 
-    def safeLog(number: float):
-        """Returns the log of a number, returning -1e308 (the lower limit of a float) if the number is zero to avoid errors."""
+    def safeLog(number):
+        """Returns the log of a number, returning -infinity if the number is 0 to avoid errors."""
 
         if (number == 0):
-            return -1e308
+            return -math.inf
         
         return math.log(number)
+    
+    def safeExp(number):
+        """Returns the log of a number, returning 0 if the number is -infinity to avoid errors."""
+
+        if (number == -math.inf):
+            return 0
+        
+        return math.exp(number)
 
     symbols = list(OrderedDict.fromkeys(sequence).keys())
     num_symbols = len(symbols)
@@ -100,7 +108,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Populate first row of trellis
         for s in range(num_states):
             fTrellis[0][s] = lInitialDistribution[s] + lEmissions[s][sequence[0]]
-            rowSums[0] += math.exp(fTrellis[0][s])
+            rowSums[0] += safeExp(fTrellis[0][s])
         
         rowSums[0] = safeLog(rowSums[0])
         fTrellis[0] = [fTrellis[0][s] - rowSums[0] for s in range(num_states)]
@@ -108,8 +116,8 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Populate the rest of the trellis
         for l in range(1, sequenceLength):
             for s in range(num_states):
-                fTrellis[l][s] = lEmissions[s][sequence[l]] + safeLog(sum([math.exp(fTrellis[l-1][i] + lTransitions[i][s]) for i in range(num_states)]))
-                rowSums[l] += math.exp(fTrellis[l][s])
+                fTrellis[l][s] = lEmissions[s][sequence[l]] + safeLog(sum([safeExp(fTrellis[l-1][i] + lTransitions[i][s]) for i in range(num_states)]))
+                rowSums[l] += safeExp(fTrellis[l][s])
             
             rowSums[l] = safeLog(rowSums[l])
             fTrellis[l] = [fTrellis[l][s] - rowSums[l] for s in range(num_states)]
@@ -124,7 +132,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Populate the rest of the trellis
         for l in reversed(range(0, lastItem)):
             for s in range(num_states):
-                bTrellis[l][s] = safeLog(sum([math.exp(bTrellis[l+1][i] + lTransitions[s][i] + lEmissions[i][sequence[l+1]]) for i in range(num_states)]))
+                bTrellis[l][s] = safeLog(sum([safeExp(bTrellis[l+1][i] + lTransitions[s][i] + lEmissions[i][sequence[l+1]]) for i in range(num_states)]))
             
             bTrellis[l] = [bTrellis[l][s] - rowSums[l] for s in range(num_states)]
         
@@ -141,10 +149,10 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
 
             if (l != lastItem):
                 ksis.append([])
-                bottom = safeLog(sum([sum([math.exp(fTrellis[l][i] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]]) for j in range(num_states)]) for i in range(num_states)]))
+                bottom = safeLog(sum([sum([safeExp(fTrellis[l][i] + lTransitions[i][j] + bTrellis[l+1][j] + lEmissions[j][sequence[l+1]]) for j in range(num_states)]) for i in range(num_states)]))
 
             for s in range(num_states):
-                gammas[l].append((fTrellis[l][s] + bTrellis[l][s]) - safeLog(sum([math.exp(fTrellis[l][i] + bTrellis[l][i]) for i in range(num_states)])))
+                gammas[l].append((fTrellis[l][s] + bTrellis[l][s]) - safeLog(sum([safeExp(fTrellis[l][i] + bTrellis[l][i]) for i in range(num_states)])))
 
                 if (l != lastItem):
                     ksis[l].append([])
@@ -171,24 +179,24 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
 
         for s in range(num_states):
 
-            initialDistribution.append(math.exp(gammas[0][s]))
+            initialDistribution.append(safeExp(gammas[0][s]))
             transitions.append([])
             emissions.append([])
 
-            bottomList = [math.exp(gammas[l][s]) for l in range(sequenceLength)]
+            bottomList = [safeExp(gammas[l][s]) for l in range(sequenceLength)]
 
             bottom_t = sum(bottomList[:-1])
             bottom_e = sum(bottomList)
 
             # Update transition matrix
             for t in range(num_states):
-                top = sum([math.exp(ksis[l][s][t]) for l in range(sequenceLength-1)])
+                top = sum([safeExp(ksis[l][s][t]) for l in range(sequenceLength-1)])
 
                 transitions[s].append(top / bottom_t)
             
             # Update emission probabilities
             for o in range(num_symbols):
-                top = sum([int(sequence[l] == o) * math.exp(gammas[l][s]) for l in range(sequenceLength)])
+                top = sum([int(sequence[l] == o) * safeExp(gammas[l][s]) for l in range(sequenceLength)])
 
                 emissions[s].append(top / bottom_e)
         
