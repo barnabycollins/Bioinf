@@ -68,7 +68,7 @@
 \renewcommand{\familydefault}{\sfdefault}
 \renewcommand{\thesection}{\hspace{-0.5cm}\arabic{section}}
 \renewcommand{\thesubsection}{\alph{subsection})}
-\renewcommand{\thesubsubsection}{Recursion depth \arabic{subsubsection}}
+\renewcommand{\thesubsubsection}{}
 
 \usepackage[style=numeric-comp]{biblatex}
 
@@ -117,19 +117,27 @@ For $i=1\text{ to }L$ do:
 \end{lstlisting}
 
 \subsection{The Expectation-Maximisation Algorithm}
-My implementation of EM has been included in the file 'q1b.py'. Expectation-Maximisation works as follows:
+My implementation of EM for HMMs (aka the Baum-Welch algorithm) has been included in the file 'q1b.py'. Expectation-Maximisation works as follows:
 
-Given the observed sequence, the alphabet, and the number of states, generate some arbitrary model parameters for the initial distribution of state likelihoods, transition probabilities and emission probabilities.
+\begin{quote}
+	Given the observed sequence, the alphabet, and the number of states, generate some arbitrary model parameters for the initial distribution of state likelihoods, transition probabilities and emission probabilities.
+	
+	Run the forward algorithm on the sequence, given the initial generated parameters. The forward algorithm generates a trellis of probabilities with width \texttt{num\_states} and height \texttt{sequence\_length}. Each probability in this trellis corresponds to the likelihood of being in each state at each point in the observed sequence.
+	
+	Run the backward algorithm on the sequence. The backward algorithm generates a similar trellis of probabilities to the forward algorithm: the only difference is that the probabilities in the trellis correspond to the likelihood of producing the rest of the sequence from the given state at the given point.
+	
+	With these metrics computed, we can compute the estimated number of times that each transition or emission will occur given our current model parameters. We can then divide these by the total number of transmissions \& emissions to find a new set of model parameters, and also compute a new distribution for the starting states. We also compute the likelihood of the sequence being observed under our new set of parameters.
+	
+	These new parameters are then substituted for the old ones, and the algorithm repeats again, starting with the forward algorithm. This happens until the likelihood of the new parameters stops appreciably increasing, at which point the algorithm terminates and returns the final set of parameters. I used the point at which two consecutive likelihoods are identical, since at this point the increase in likelihood is less than machine precision.
+\end{quote}
 
-Run the forward algorithm on the sequence, given the initial generated parameters. The forward algorithm generates a trellis of probabilities with width \texttt{num\_states} and height \texttt{sequence\_length}. Each probability in this trellis corresponds to the likelihood of being in each state at each point in the observed sequence.
+Since we are multiplying lots of probabilities here, which tends to result in very small numbers and will never exceed 1.0, it is a good idea to work in log space in order to maximise precision and minimise underflows. Since the log function effectively 'stretches out' small numbers and 'squashes' large numbers in its output space, it is ideal for this task. In log space, operations such as multiplication and division can be easily done with addition and subtraction. Numbers do need to be converted out of log space for a 'logsumexp' operation when sums are required, but this is not a significant problem here.
 
-Run the backward algorithm on the sequence. The backward algorithm generates a similar trellis of probabilities to the forward algorithm: the only difference is that the probabilities in the trellis correspond to the likelihood of producing the rest of the sequence from the given state at the given point.
+One issue I did encounter was that there were instances where probabilities of 0 were required: this would land out of the range of the log function. To solve this, I implemented wrapper functions for \texttt{math.exp()} and \texttt{math.log()} which allowed the conversion of 0 into log space as negative infinity. Since the log space is entirely internal and the values returned are in conventional space, this works fine.
 
-With these metrics computed, we can compute the estimated number of times that each transition or emission will occur given our current model parameters. We can then divide these by the total number of transmissions \& emissions to find a new set of model parameters, and also compute a new distribution for the starting states. We also compute the likelihood of the sequence being observed under our new set of parameters.
+I also employed a scaling method to keep numbers within reasonable bounds, based on section (V)(A) of \href{http://dx.doi.org/10.1109/5.18626}{Rabiner's 1989 paper on HMMs}. This involved dividing each row in the forward trellis by its sum to ensure they added up to 1, and using the same forward sums to also scale the corresponding rows of the backward trellis. This causes the log likelihood in its normal form to be lost, but as shown in the paper it instead becomes equal to the sum of the logs of the row sums.
 
-These new parameters are then substituted for the old ones, and the algorithm repeats again, starting with the forward algorithm. This happens until the likelihood of the new parameters stops appreciably increasing, at which point the algorithm terminates and returns the final set of parameters.
-
-Since we are multiplying lots of probabilities here, which tends to result in very small numbers, it is a good idea to work in log space in order to maximise precision and minimise underflows. Since the log function effectively 'stretches out' small numbers and 'squashes' large numbers in its output space, it is ideal for this task. In log space, operations such as multiplication and division can be easily done with addition and subtraction. Numbers do need to be converted out of log space when sums are required, but this is not a significant problem here.
+\subsubsection{Validation}
 
 
 \hfill
@@ -202,6 +210,7 @@ Each sub-array (each depicted here on its own line) corresponds to a block $S_i$
 For clarity, I have named each block and set of constraints with their recursion depth and an arbitrary number to identify them at that depth. This is notated $S_\text{number}^\text{depth}$.
 
 \setcounter{subsubsection}{-1}
+\renewcommand{\thesubsubsection}{Recursion depth \arabic{subsubsection}}
 
 \subsubsection{}
 	\begin{center}

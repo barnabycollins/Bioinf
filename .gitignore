@@ -131,3 +131,4 @@ dmypy.json
 Answers/*
 !Answers/*.tex
 !Answers/*.png
+*run*.txt

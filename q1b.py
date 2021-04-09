@@ -110,6 +110,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             fTrellis[0][s] = lInitialDistribution[s] + lEmissions[s][sequence[0]]
             rowSums[0] += safeExp(fTrellis[0][s])
         
+        # Scale values - based on section V. A in http://dx.doi.org/10.1109/5.18626
         rowSums[0] = safeLog(rowSums[0])
         fTrellis[0] = [fTrellis[0][s] - rowSums[0] for s in range(num_states)]
         
