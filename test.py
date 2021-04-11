@@ -114,13 +114,13 @@ if(TEST_Q1B):
             
         else:
             for i in range(NUM_ITERATIONS):
-                NUM_STATES = random.randrange(1, 16)
-                NUM_SYMBOLS = random.randrange(1, 32)
+                NUM_STATES = random.randrange(2, 16)
+                NUM_SYMBOLS = random.randrange(2, 32)
                 
                 initial = generateProbabilityMatrix(1, NUM_STATES)[0]
                 transitions = generateProbabilityMatrix(NUM_STATES, NUM_STATES)
                 emissions = generateProbabilityMatrix(NUM_STATES, NUM_SYMBOLS)
-                sequenceLength = random.randrange(1, 400)
+                sequenceLength = random.randrange(10, 400)
 
                 observations = HMM(initial, transitions, emissions, sequenceLength)
                 print(f'Beginning run:\nNUM_STATES: {NUM_STATES}\nobservations: {observations}\n...')
@@ -137,7 +137,7 @@ if(TEST_Q1B):
                 f.close()
                 sys.stdout = sys.__stdout__
 
-                """print(f'{SDs}\n')"""
+                print(f'{results}\n')
 
 
 if (TEST_Q2D):

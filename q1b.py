@@ -2,17 +2,22 @@ import math
 from collections import OrderedDict
 from typing import Union
 
-def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
+def ExpectationMaximisation(sequence: str, num_states: int, alphabet: list = [], max_iter: int = 1000, log: bool = False) -> tuple:
     """Finds a local maximum set of parameters for an HMM with 'num_states' states and observed output 'sequence'
 
     Parameters:
-    - sequence:     a string of symbols representing observed outputs
+    - sequence:     a string of single-character symbols representing observed outputs
                     eg, 'ACTGGTCTCGAGTGTGACTG'
     - num_states:   the integer number of states the HMM being modelled has
+    - alphabet:     (Optional; default []) a list of all the symbols to be found in the sequence.
+                    Will be generated automatically from the sequence if omitted or an empty list is given.
+    - max_iter:     (Optional; default 1000) The maximum number of iterations to perform before stopping.
+                    The algorithm will stop before this point if increase in likelihood drops below machine precision.
+    - log:          (Optional; default False) Whether to output the likelihood to the command line on each iteration.
 
     Returns a tuple of optimised parameters, as follows:
     (
-        Initial state probability distribution (ie, for the first item in the sequence)
+        Initial state probability distribution (ie, for the first state in the sequence)
         State transition matrix (as a 2D list, where the inner lists represent the distribution of transitions from one state)
         Emission matrix (as a 2D list, where the inner lists represent the distribution of observed symbols for one state)
         Ordered list of the symbols (mapping symbols to indices in the emission matrix)
@@ -52,7 +57,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             return output
         return safeLog(structure)
 
-    def safeLog(number):
+    def safeLog(number: Union[int, float]) -> float:
         """Returns the log of a number, returning -infinity if the number is 0 to avoid errors."""
 
         if (number == 0):
@@ -60,7 +65,7 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         
         return math.log(number)
     
-    def safeExp(number):
+    def safeExp(number: Union[int, float]) -> float:
         """Returns the log of a number, returning 0 if the number is -infinity to avoid errors."""
 
         if (number == -math.inf):
@@ -68,10 +73,13 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         
         return math.exp(number)
 
-    symbols = list(OrderedDict.fromkeys(sequence).keys())
-    num_symbols = len(symbols)
 
-    sequence = [symbols.index(s) for s in sequence]
+    if (alphabet == []):
+        alphabet = list(OrderedDict.fromkeys(sequence).keys())
+    
+    num_symbols = len(alphabet)
+
+    sequence = [alphabet.index(s) for s in sequence]
     sequenceLength = len(sequence)
 
     # Set random initial conditions
@@ -85,9 +93,9 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
     lastLikelihood = -1.1e308
     likelihood = -1e308
 
-    #while (likelihood > lastLikelihood):
-    for i in range(2000):
-        #print(f'Likelihood: {likelihood}')
+    # This is effectively a do-while loop: there is a check when a new likelihood is generated to break when
+    #   no further improvements are being made
+    for i in range(max_iter):
         
         lastLikelihood = likelihood
         
@@ -99,8 +107,8 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
             bTrellis.append([])
 
             for s in range(num_states):
-                fTrellis[o].append('dave')
-                bTrellis[o].append('dave')
+                fTrellis[o].append(0)
+                bTrellis[o].append(0)
         
         rowSums = [0 for i in range(sequenceLength)]
 
@@ -165,8 +173,8 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Compute likelihood for new parameters
         likelihood = sum(rowSums)
         
-        #print(f'New likelihood: {likelihood}; old likelihood: {lastLikelihood}')
-        print(likelihood)
+        if (log):
+            print(f'Likelihood: {likelihood}')
 
         if (likelihood == lastLikelihood):
             break
@@ -204,4 +212,4 @@ def ExpectationMaximisation(sequence: str, num_states: int) -> tuple:
         # Convert structures to log space
         [lTransitions, lEmissions, lInitialDistribution] = convertToLog([transitions, emissions, initialDistribution])
     
-    return (initialDistribution, transitions, emissions, symbols, likelihood)
+    return (initialDistribution, transitions, emissions, alphabet, likelihood)
