@@ -86,7 +86,7 @@
 
 \section{Markov Models}
 \subsection{HMMs with silent states}
-Since the Viterbi algorithm is already popular for solving this problem without silent states, I decided to adapt it forthe inclusion of silent states. The Viterbi algorithm iterates using the observed output of the modelled HMM, constructing a trellis of possible states for each observed output. Since we need to cater for states that do not provide any output whatsoever, we need to be able to generate possible silent states as well as the existing trellis of non-silent states. We also need to consider these silent states alongside the non-silent ones when deciding on possible precursors for each observed outcome.
+Since the Viterbi algorithm is already popular for solving this problem without silent states, I decided to adapt it for the inclusion of silent states. The Viterbi algorithm iterates using the observed output of the modelled HMM, constructing a trellis of possible states for each observed output. Since we need to cater for states that do not provide any output whatsoever, we need to be able to generate possible silent states as well as the existing trellis of non-silent states. We also need to consider these silent states alongside the non-silent ones when deciding on possible precursors for each observed outcome.
 
 Therefore, I would propose the following modified Viterbi algorithm:
 \begin{lstlisting}
@@ -863,26 +863,47 @@ Abstractly, every branch underneath the current node is linked to at least one o
 For the following structures, \texttt{TreeNode.traverse()} on the root might return:
 \begin{center}
 \begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.5\textwidth}}
-	\includegraphics[scale=0.2]{traverse1} & ([], ['a'], []) \\
-	\multicolumn{2}{l}{\parbox{\textwidth}{This is a trivial case and contains just one leaf. As such it returns no constraints or pairs to connect; simply itself inside the flattened child list.}}
-\end{tabular}
-\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.55\textwidth}}
-	\includegraphics[scale=0.1]{traverse2} & ([], ['a', 'b', ..., 'z'], [('a', 'b'), ('b', 'c'), ..., ('y', 'z')]) \\
-	\multicolumn{2}{l}{\parbox{\textwidth}{This case demonstrates how an internal node with leaves for children would return itself. It still generates no constraints. This is correct: it is impossible to correctly describe a tree of this structure with constraints of the format used here.}}
-\end{tabular}
-\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.5\textwidth}}
-	\includegraphics[scale=0.1]{traverse3} & (['(a, b) < (a, c)'], ['a', 'b', 'c'], [('a', 'c')]) \\
-	\multicolumn{2}{l}{\parbox{\textwidth}{This is the simplest tree for which a constraint can be generated. It is represented by a single constraint. At this level we cannot generate constraints that ensure that the items of the (a, b) branch and the (c) branch are put together in the parent's blocks, which is why it returns the pair (a, c) for connecting with a constraint LHS in the parent.}}
-\end{tabular}
-\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.5\textwidth}}
-	\includegraphics[scale=0.1]{traverse4} & (['(a, b) < (a, i)', '(i, j) < (i, s)', '(s, t) < (s, a)'], ['a', 'b', 'i', 'j', 's', 't'], [('a', 'i'), ('i', 's')]) \\
-	\multicolumn{2}{l}{\parbox{\textwidth}{Each of the nodes in the middle layer has instructed the root here to join their leaves into one block, which is done with each constraint returned here. The internal nodes' sets will not be joined by the parent as things stand here though, so pairs of single leaves from each one are returned to the parent for connecting at the next layer.}}
-\end{tabular}
-\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.55\textwidth}}
-	\includegraphics[scale=0.1]{traverse5} & (['(a, b) < (a, s)', '(i, j) < (i, t)'], ['a', 'b', 'i', 'j', 's', 't'], [('a', 'i'), ('i', 's'), ('a', 't')]) \\
-	\multicolumn{2}{l}{\parbox{\textwidth}{This is a larger version of the third example. Each constraint links an internal node to a leaf, and serves two purposes: to define internal children's blocks and to state the existence of leaves. Returned for connection by the parent are pairs of single nodes from each child.}}
+	\includegraphics[scale=0.2]{traverse1} & ([], ['a'], [])
 \end{tabular}
 \end{center}
+This is a trivial case and contains just one leaf. As such it returns no constraints or pairs to connect; simply itself inside the flattened child list.
+
+\begin{center}
+\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.55\textwidth}}
+	\includegraphics[scale=0.1]{traverse2} & ([], ['a', 'b', ..., 'z'], [('a', 'b'), ('b', 'c'), ..., ('y', 'z')])
+\end{tabular}
+\end{center}
+This case demonstrates how an internal node with leaves for children would return itself. It still generates no constraints. This is correct: it is impossible to correctly describe a tree of this structure with constraints of the format used here.
+
+\hfill
+
+\begin{center}
+\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.5\textwidth}}
+	\includegraphics[scale=0.1]{traverse3} & (['(a, b) < (a, c)'], ['a', 'b', 'c'], [('a', 'c')])
+\end{tabular}
+\end{center}
+This is the simplest tree for which a constraint can be generated. It is represented by a single constraint. At this level we cannot generate constraints that ensure that the items of the (a, b) branch and the (c) branch are put together in the parent's blocks, which is why it returns the pair (a, c) for connecting with a constraint LHS in the parent.
+
+\hfill
+
+\begin{center}
+\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.5\textwidth}}
+	\includegraphics[scale=0.1]{traverse4} & (['(a, b) < (a, i)', '(i, j) < (i, s)', '(s, t) < (s, a)'], ['a', 'b', 'i', 'j', 's', 't'], [('a', 'i'), ('i', 's')])
+\end{tabular}
+\end{center}
+Each of the nodes in the middle layer has instructed the root here to join their leaves into one block, which is done with each constraint returned here. The internal nodes' sets will not be joined by the parent as things stand here though, so pairs of single leaves from each one are returned to the parent for connecting at the next layer.
+
+\hfill
+
+\begin{center}
+\begin{tabular}{>{\centering}m{0.45\textwidth} >{\centering\arraybackslash}m{0.55\textwidth}}
+	\includegraphics[scale=0.1]{traverse5} & (['(a, b) < (a, s)', '(i, j) < (i, t)'], ['a', 'b', 'i', 'j', 's', 't'], [('a', 'i'), ('i', 's'), ('a', 't')])
+\end{tabular}
+\end{center}
+
+This is a larger version of the third example. Each constraint links an internal node to a leaf, and serves two purposes: to define internal children's blocks and to state the existence of leaves. Returned for connection by the parent are pairs of single nodes from each child.
+
+\hfill
 
 While I have not conducted any formal proofs, I am confident that this algorithm is close to being optimal (if not optimal already). As a benchmark, it describes the graph in question 2c above in only 11 constraints. For most small, contrived graphs, I believe its result to be accurate, and see no particular reason that this would not apply to larger graphs too.
 
