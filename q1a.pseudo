@@ -1,52 +1,35 @@
-function Viterbi_Silent(..., transitions, states, emissions, ...):
+function Viterbi_Silent(..., transitions, states, ...):
+  // Parameters structured as follows:
+  //  - transitions: a square 2D array with edge length equal to number of states
+  //        where transitions[i][j] contains the probability of transitioning from
+  //        state 'i' to state 'j'
+  //  - states: an array of items representing states, where each item can be used
+  //        to identify a slot in an array indexed by state
+  // All other parameters omitted for brevity here!
+
+  transitionStateMatrix = []
+
 	for a in states:
+    transitionStateMatrix[a] += []
+
 		for b in states:
-      best_prob = transition_prob = transitions[a][b]
-      best_sequence = []
 
-      new_best_prob = 0
+      // Run a Viterbi algorithm, modified as follows:
+      //  - For the first row of the trellis, assume previous state was 'a'
+      //  - Use an observed sequence of infinite silent states
+      //  - For each sequence length, store the sequence with the highest
+      //        probability of finishing by appending state 'b', and the
+      //        corresponding probability
+      //  - Stop iterating once every probability in the current sequence
+      //        length's row is less than transitions[a][b]
+      //  - Take the sequence of silent states with the highest probability over
+      //        all lengths and store it in bestSequence, with its probability
+      //        in bestProb
 
-      trellis = [
-        []
-      ]
-      
-      // Initialise first row of trellis
-      for c in states:
-        probToAdd = transitions[a][c] * emissions[c][empty]
-
-        if (probToAdd > transition_prob):
-          trellis[0][c] = probToAdd
-
-          if (probToAdd > new_best_prob):
-            new_best_prob = probToAdd
-            new_best_seq = [c]
-      
-      // If the best probability in the current row is worse
-      //  than the transition probability, it won't get better
-      //  so move onto the next pair of states
-      if (new_best_prob <= best_prob):
-        continue
-
-      backtrackTrellis = [
-        []
-      ]
-
-			while True: // do-while loop
-        best_prob = new_best_prob
-        new_best_prob = 0
-        trellis += []
-        backtrackTrellis += []
-        seqLength = 1
-
-				for c in states:
-          for d in states:
-            
-          probToAdd = max([trellis[seqLength-1][d] * transitions[d][c] for d in states])
-
-          if (probToAdd > transition_prob):
-            trellis[seqLength][c] = probToAdd
-
-            if (probToAdd > new_best_prob):
-              new_best_prob = probToAdd
-              new_best_seq = backtrack(seqLength)
-
+      if (bestProb > transitions[a][b]):
+        transitions[a][b] = bestProb
+        transitionStateMatrix[a][b] = bestSequence
+  
+  // Run the standard Viterbi algorithm using the updated transition probability
+  //      matrix, backtracking using transitionStateMatrix to identify the states
+  //      traversed between each non-silent state
