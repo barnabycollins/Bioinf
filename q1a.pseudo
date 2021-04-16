@@ -1,0 +1,52 @@
+function Viterbi_Silent(..., transitions, states, emissions, ...):
+	for a in states:
+		for b in states:
+      best_prob = transition_prob = transitions[a][b]
+      best_sequence = []
+
+      new_best_prob = 0
+
+      trellis = [
+        []
+      ]
+      
+      // Initialise first row of trellis
+      for c in states:
+        probToAdd = transitions[a][c] * emissions[c][empty]
+
+        if (probToAdd > transition_prob):
+          trellis[0][c] = probToAdd
+
+          if (probToAdd > new_best_prob):
+            new_best_prob = probToAdd
+            new_best_seq = [c]
+      
+      // If the best probability in the current row is worse
+      //  than the transition probability, it won't get better
+      //  so move onto the next pair of states
+      if (new_best_prob <= best_prob):
+        continue
+
+      backtrackTrellis = [
+        []
+      ]
+
+			while True: // do-while loop
+        best_prob = new_best_prob
+        new_best_prob = 0
+        trellis += []
+        backtrackTrellis += []
+        seqLength = 1
+
+				for c in states:
+          for d in states:
+            
+          probToAdd = max([trellis[seqLength-1][d] * transitions[d][c] for d in states])
+
+          if (probToAdd > transition_prob):
+            trellis[seqLength][c] = probToAdd
+
+            if (probToAdd > new_best_prob):
+              new_best_prob = probToAdd
+              new_best_seq = backtrack(seqLength)
+
