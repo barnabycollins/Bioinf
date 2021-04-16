@@ -92,9 +92,90 @@ Viterbi iterates over the observed sequence, making additional silent state comp
 
 Therefore, my proposed solution precomputes the most likely silent state transitions and uses them to augment the transition matrix. Essentially, for each state pair $(a, b)$ it computes the sequence of silent states that is most likely to start at state $a$ and finish at state $b$. If this most likely sequence is more likely than the 'standard' $a \rightarrow b$ transition, it will replace that transition in the transition matrix. It stores the sequence of silent states that created the corresponding item in the transition matrix as an ordered array of states; a direct transition (ie, directly from $a \rightarrow b$) is represented by an empty array.
 
-\begin{lstlisting}
+The pseudocode is below (on a new, landscape, page), but is also included separately as the file 'q1a.pseudo'. In order to avoid verbose implementation details (which got out of hand quickly when I started writing things out in a more concrete manner!) the more abstract processes are described with comments instead of pseudocode.
 
+\hfill
+
+\subsubsection{Correctness \& Complexity}
+Since the Viterbi algorithm finds the most probable path, and one of the assumptions of an HMM is that each state transition is independent, it is clear that every time the transition $a \rightarrow b$ occurs (where both $a$ and $b$ are non-silent), we need to use the most probable 'path' from $a$ to $b$. Under the new assumptions, this may involve taking a 'longer route' via other silent states, or directly transitioning from the former to the latter. As such, if the most probable 'path' from $a$ to $b$ is via the silent states $c, d, e$, then in all cases where $a$ transitions to $b$ the most probable path is $a \rightarrow c \rightarrow d \rightarrow e \rightarrow b$. This is what allows us to completely replace the normal $a \rightarrow b$ transition with a single series of silent states, if that series is more likely than a direct transition.
+
+The modified Viterbi algorithm designed to find these most likely silent sequences between a pair of non-silent states should also be correct, because it is essentially taking a maximum probability over all sequence lengths and all possible final states. Halting when the whole row is less than \texttt{transitions[a][b]} is valid because we are working with probabilities, so each new transition is only going to reduce the total probability of a given state sequence. Therefore, once every possible state sequence has become less likely than the normal transition probability, we can know that it is no longer possible to beat that probability with a longer sequence of silent states.
+
+Finally, the condition after each modified Viterbi algorithm ensures that the silent state sequence will only replace the usual transition probability (and empty list of intervening states \texttt{[]}) if that sequence of states constitutes an improved transition probability when compared to the direct transition. All of this means we can be sure that the transition matrix takes into account the most likely possible sequence of silent states.
+
+\hfill
+
+Since the main body of the algorithm still uses the unmodified Viterbi algorithm, the complexity of that section is $O(k^2 \times n)$ as standard. The pre-computing of possible silent state sequences is the main difference from the normal procedure, so this is where a difference will be made.
+
+Technically, the modified Viterbi being run for each state transition could run forever in a model where emission and transition probabilities of 1 are present. However, it is highly unlikely that real-world HMMs will incorporate probabilities of 1, so I believe this is not a problem. In a more realistic scenario, with a reasonable number of states with reasonable transition and emission probabilities, it is unlikely that it will reach sequences with greater lengths than one or two orders of magnitude.
+
+The modified Viterbi algorithms will need to iterate over [all states, for each state, for each sequence length], and is being run for [all end states, and for each start state]. Giving the sequence length before (all probabilities $\leq$ transition probability) for any start/end pair the name $s$, its time complexity is a function of:
+
+$$k^4 \times \text{Average}(s)$$
+
+The value of this final item is difficult to compute, as it relies on nuances relating to the distributions of transition and emission probabilities, and is really an average over all combinations of start and end states. However, as mentioned above, I believe that it will not reach unreasonable magnitude for a real-world HMM, so it is not a huge problem. Also, if there is a model with any excessively large number of iterations needed, that model would trivially have an extremely uneven distribution of probabilities. Therefore, some state pairs would need zero (or otherwise a very small number of) iterations to evaluate, which goes some way to offset this individual complexity.
+
+To summarise, both $k$ and the average sequence length required to evaluate the silent state sequences will be relatively small for most reasonable cases. It is worth noting that the large variable, the overall sequence length $n$, has no bearing on this process - meaning this preprocessing section will take the same time even for extreme sequence lengths.
+
+\hfill
+
+The space complexity of the first section is also fairly reasonable. The matrix that stores the most likely silent state sequences for each transition will be of size $k^2 \times \text{(Average OR Maximum)}(s)$, depending on whether a linked list or fixed array is used for the state sequences. The trellis of silent state probabilities will never exceed a factor of $k \times \text{Maximum}(s)$.
+
+For the main Viterbi section, we once again have the usual space complexity of $k \times n$ for the main trellis, the emission matrix at $k \times \text{Number of symbols}$, and the transition matrix at $k^2$. However, we also need to store the silent state sequences for each transition for backtracking purposes, at the above size of $k^2 \times \text{(Average OR Maximum)}(s)$.
+
+\hfill
+
+Therefore, to summarise:
+
+The time complexity of the pre-computation is $k^4 \times \text{Average}(s)$, with its most space-complex structure at a complexity of $k^2 \times \text{(Average OR Maximum)}(s)$.
+
+The second half of the algorithm, the standard Viterbi process, requires time of $O(k^2 \times n)$ and space $O(k \times n)$ with a small number of additional structures up to $k^2 \times \text{(Average OR Maximum)}(s)$.
+
+It is worth noting that $n$, for a typical HMM, will be far larger than $k$ or $s$, so the apparent complexity of the precomputation is less extreme than it may seem at a glance.
+
+
+
+\begin{landscape}
+\hphantom{6.9cm}
+\vspace{-1.0cm}
+\begin{lstlisting}
+function Viterbi_Silent(..., transitions, states, ...):
+  // Parameters structured as follows:
+  //  - transitions: a square 2D array with edge length equal to number of states
+  //        where transitions[i][j] contains the probability of transitioning from
+  //        state 'i' to state 'j'
+  //  - states: an array of items representing states, where each item can be used
+  //        to identify a slot in an array indexed by state
+  // All other parameters omitted for brevity here!
+
+  transitionStateMatrix = []
+
+  for a in states:
+    transitionStateMatrix[a] += []
+
+    for b in states:
+
+      // Run a Viterbi algorithm, modified as follows:
+      //  - For the first row of the trellis, assume previous state was 'a'
+      //  - Use an observed sequence of infinite silent states
+      //  - For each sequence length, store the sequence with the highest
+      //        probability of finishing by appending state 'b', and the
+      //        corresponding probability
+      //  - Stop iterating once every probability in the current sequence
+      //        length's row is less than transitions[a][b]
+      //  - Take the sequence of silent states with the highest probability over
+      //        all lengths and store it in bestSequence, with its probability
+      //        in bestProb
+
+      if (bestProb > transitions[a][b]):
+        transitions[a][b] = bestProb
+        transitionStateMatrix[a][b] = bestSequence
+  
+  // Finally, run the standard Viterbi algorithm using the updated transition probability
+  //      matrix, backtracking using transitionStateMatrix to identify the states
+  //      traversed between each non-silent state
 \end{lstlisting}
+\end{landscape}
 
 
 \subsection{The Expectation-Maximisation Algorithm}

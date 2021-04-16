@@ -9,10 +9,10 @@ function Viterbi_Silent(..., transitions, states, ...):
 
   transitionStateMatrix = []
 
-	for a in states:
+  for a in states:
     transitionStateMatrix[a] += []
 
-		for b in states:
+    for b in states:
 
       // Run a Viterbi algorithm, modified as follows:
       //  - For the first row of the trellis, assume previous state was 'a'
@@ -30,6 +30,6 @@ function Viterbi_Silent(..., transitions, states, ...):
         transitions[a][b] = bestProb
         transitionStateMatrix[a][b] = bestSequence
   
-  // Run the standard Viterbi algorithm using the updated transition probability
+  // Finally, Run the standard Viterbi algorithm using the updated transition probability
   //      matrix, backtracking using transitionStateMatrix to identify the states
   //      traversed between each non-silent state
