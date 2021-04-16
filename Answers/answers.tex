@@ -86,35 +86,16 @@
 
 \section{Markov Models}
 \subsection{HMMs with silent states}
-Since the Viterbi algorithm is already popular for solving this problem without silent states, I decided to adapt it for the inclusion of silent states. The Viterbi algorithm iterates using the observed output of the modelled HMM, constructing a trellis of possible states for each observed output. Since we need to cater for states that do not provide any output whatsoever, we need to be able to generate possible silent states as well as the existing trellis of non-silent states. We also need to consider these silent states alongside the non-silent ones when deciding on possible precursors for each observed outcome.
+Since the Viterbi algorithm is already popular for solving this problem without silent states, I decided to adapt it for the inclusion of silent states. The Viterbi algorithm iterates using the observed output of the modelled HMM, constructing a trellis of possible states for each observed output.
 
-Therefore, I would propose the following modified Viterbi algorithm:
+Viterbi iterates over the observed sequence, making additional silent state computations difficult to include, given that they inherently do not create an observed symbol. Also, including additional logic to handle silent states inside the main loop will create significant time overheads.
+
+Therefore, my proposed solution precomputes the most likely silent state transitions and uses them to augment the transition matrix. Essentially, for each state pair $(a, b)$ it computes the sequence of silent states that is most likely to start at state $a$ and finish at state $b$. If this most likely sequence is more likely than the 'standard' $a \rightarrow b$ transition, it will replace that transition in the transition matrix. It stores the sequence of silent states that created the corresponding item in the transition matrix as an ordered array of states; a direct transition (ie, directly from $a \rightarrow b$) is represented by an empty array.
+
 \begin{lstlisting}
-Initialise trellis with $v_0(0)=1, v_k(0)=0\quad|\quad k>0$
-Initialise 2D array of linked list heads with size $m\times L$
-
-// For each observed output
-For $i=1\text{ to }L$ do:
-  // For each possible state
-  For each state $l$ do:
-    $v_l(i) = e_l(x_i) \times max_k\{v_k(i-1)\times m_{kl}\}$
-
-  // Evaluate possible silent states
-  Initialise array $a$ of linked list heads with length $m$ and $a_0=v_l$
-  Initialise numeric array $b$ with length $m$
-  Integer j = 0
-  Initialise Boolean value $loop$
-  Do:
-    j++
-    loop = false
-    For each state $s$ do:
-      $a_j(s) = e_s($silent$)\times max_f\{a_{j-1}(f)\times m_{fs}\}$
-
-      if ($a_j(s) > v_l(s)$ and $a_j(s) > a_{j-1}(s)$):
-        loop = true
-  While (loop)
 
 \end{lstlisting}
+
 
 \subsection{The Expectation-Maximisation Algorithm}
 My implementation of EM for HMMs (aka the Baum-Welch algorithm) has been included in the file 'q1b.py'. Expectation-Maximisation works as follows:
