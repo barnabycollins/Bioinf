@@ -90,49 +90,9 @@ Since the Viterbi algorithm is already popular for solving this problem without 
 
 Viterbi iterates over the observed sequence, making additional silent state computations difficult to include, given that they inherently do not create an observed symbol. Also, including additional logic to handle silent states inside the main loop will create significant time overheads.
 
-Therefore, my proposed solution precomputes the most likely silent state transitions and includes them in the transition matrix. Essentially, for each state pair $(a, b)$ it computes the sequence of silent states that is most likely to start at state $a$ and finish at state $b$. If this most likely sequence is more likely than the 'standard' $a \rightarrow b$ transition, it will replace that transition in the transition matrix. It stores the sequence of silent states that created the corresponding item in the transition matrix as an ordered array of states, with a direct transition (ie, directly from $a \rightarrow b$) represented by an empty array.
+Therefore, my proposed solution precomputes the most likely silent state transitions and includes them in the transition matrix. Essentially, for each state pair $(a, b)$ it computes the sequence of silent states that is most likely to start at state $a$ and finish at state $b$. If this most likely sequence is more likely than the 'standard' $a \rightarrow b$ transition, it will replace that transition in the transition matrix. It stores the sequence of silent states that created the corresponding item in the transition matrix as an ordered list of states, with a direct transition (ie, directly from $a \rightarrow b$) represented by an empty array.
 
-The pseudocode is below (on a new, landscape, page), but is also included separately as the file 'q1a.pseudo'. In order to avoid verbose implementation details (which got out of hand quickly when I started writing things out in a more concrete manner!) the more abstract processes are described with comments instead of pseudocode.
-
-\hfill
-
-\subsubsection{Correctness \& Complexity}
-Since the Viterbi algorithm finds the most probable path, and one of the assumptions of an HMM is that each state transition is independent, it is clear that every time the transition $a \rightarrow b$ occurs (where both $a$ and $b$ are non-silent), we assume the most probable 'path' from $a$ to $b$ was used. Under the new assumptions, this may involve taking a 'longer route' via other silent states, or directly transitioning from the former to the latter. As such, if the most probable 'path' from $a$ to $b$ is via the silent states $c, d, e$, then in all cases where $a$ transitions to $b$ the most probable path is $a \rightarrow c \rightarrow d \rightarrow e \rightarrow b$. This is what allows us to completely replace the normal $a \rightarrow b$ transition with a single series of silent states, if that series is more likely than a direct transition.
-
-The modified Viterbi algorithm designed to find these most likely silent sequences between a pair of non-silent states should also be correct, because it is essentially taking a maximum probability over all sequence lengths and all possible final states. Halting when the whole row is less than \texttt{transitions[a][b]} is valid because we are working with probabilities, so each new transition is only going to reduce the total probability of a given state sequence. Therefore, once every possible state sequence has become less likely than the normal transition probability, we can know that it is no longer possible to beat that probability with a longer sequence of silent states.
-
-Finally, the condition after each modified Viterbi algorithm ensures that the silent state sequence will only replace the usual transition probability (and empty list of intervening states \texttt{[]}) if that sequence of states constitutes an improved transition probability when compared to the direct transition. All of this means we can be sure that the transition matrix takes into account the most likely possible sequence of silent states.
-
-\hfill
-
-Since the main body of the algorithm still uses the unmodified Viterbi algorithm, the complexity of that section is $O(k^2 \times n)$ as standard. The pre-computing of possible silent state sequences is the main difference from the normal procedure, so we will now study that.
-
-Technically, the modified Viterbi being run for each state transition could run forever in a model where both emission and transition probabilities of 1 are present. However, in the real world, HMMs that incorporate probabilities of 1 are not very meaningful or likely, so I believe this is not a problem. In a more realistic scenario, with a reasonable number of states with reasonable transition and emission probabilities, it is unlikely that it will reach sequences with greater lengths than one or two orders of magnitude.
-
-The modified Viterbi algorithms will need to iterate over [all states, for each state, for each sequence length], and is being run for [all end states, for each start state]. Giving the sequence length before (all probabilities $\leq$ transition probability) for any start/end pair the name $s$, its time complexity is a function of:
-
-$$k^4 \times \text{Average}(s)$$
-
-The value of $s$, and its average, are difficult to estimate, as it relies on nuances relating to the distributions of transition and emission probabilities. However, as mentioned above, I believe that it will not reach unreasonable magnitude for a real-world HMM, so it is not a huge problem. Also, any model with an excessively large number of iterations for one state pair will necessarily have an extremely uneven distribution of probabilities. Therefore, some state pairs would need zero (or otherwise a very small number of) iterations to evaluate, which goes some way to offset this individual complexity.
-
-To summarise, both $k$ and the average sequence length required to evaluate the silent state sequences will be relatively small for most reasonable cases. It is worth noting that the value that is usually largest, the overall sequence length $n$, has no bearing on this process - meaning this preprocessing section will take the same time even with extreme observed sequence lengths.
-
-\hfill
-
-The space complexity of the first section is also fairly reasonable. The matrix that stores the most likely silent state sequences for each transition will be of size $k^2 \times \text{(Average OR Maximum)}(s)$, depending on whether a linked list or fixed array is used for the state sequences. The trellis of silent state probabilities used for the modified Viterbi algorithm will never exceed a factor of $k \times \text{Maximum}(s)$.
-
-For the main Viterbi section, we once again have the usual space complexity of $k \times n$ for the main trellis, and the HMM parameters: the emission matrix at $k \times [\text{Number of symbols}]$, the transition matrix at $k^2$ and the initial probability distribution at $k$. However, we also need to store the silent state sequences for each transition for backtracking purposes, at the above size of $k^2 \times \text{(Average OR Maximum)}(s)$.
-
-\hfill
-
-Therefore, to summarise:
-
-The time complexity of the pre-computation is $k^4 \times \text{Average}(s)$, with its most space-complex structure at a complexity of $k^2 \times \text{(Average OR Maximum)}(s)$.
-
-The second half of the algorithm, the standard Viterbi process, requires time of $O(k^2 \times n)$ and space $O(k \times n)$ with a small number of additional structures up to $k^2 \times \text{(Average OR Maximum)}(s)$.
-
-It is worth noting that $n$, for a typical HMM, will be far larger than $k$ or $s$, so the apparent complexity of the pre-computation is less extreme than it may seem at a glance.
-
+The pseudocode is below (on a new landscape page), but is also included separately as the file 'q1a.pseudo'. In order to avoid verbose implementation details (which got out of hand quickly when I started writing things out in a more concrete manner!) the more abstract processes are described with comments instead of pseudocode.
 
 
 \begin{landscape}
@@ -178,6 +138,47 @@ function Viterbi_Silent(..., transitions, states, ...):
 \end{landscape}
 
 
+\subsubsection{Correctness \& Complexity}
+Since the Viterbi algorithm finds the most probable path, and one of the assumptions of an HMM is that each state transition is considered to be independent, it is clear that every time the transition $a \rightarrow b$ occurs (where both $a$ and $b$ are non-silent), we assume the most probable 'path' from $a$ to $b$ was used. Under the new assumptions, this may involve taking a 'longer route' via other silent states, or directly transitioning from the former to the latter. As such, if the most probable 'path' from $a$ to $b$ is via the silent states $c, d, e$, then in all cases where $a$ transitions to $b$ the most probable path is $a \rightarrow c \rightarrow d \rightarrow e \rightarrow b$. This is what allows us to completely replace the normal $a \rightarrow b$ transition with a single series of silent states, if that series is more likely than a direct transition.
+
+The modified Viterbi algorithm designed to find these most likely silent sequences between a pair of non-silent states should also be correct, because it is essentially taking a maximum probability over all sequence lengths and all possible final states. Halting when the whole row is less than \texttt{transitions[a][b]} is valid because we are working with probabilities, so each new transition is only going to reduce the total probability of a given state sequence. Therefore, once every possible state sequence has become less likely than the normal transition probability, we can know that it is no longer possible to beat that probability with a longer sequence of silent states.
+
+Finally, the condition after each modified Viterbi algorithm ensures that the silent state sequence will only replace the usual transition probability (and empty list of intervening states \texttt{[]}) if that sequence of states constitutes an improved transition probability when compared to the direct transition. All of this means we can be sure that the transition matrix takes into account the most likely possible sequence of silent states.
+
+\hfill
+
+Since the main body of the algorithm still uses the unmodified Viterbi algorithm, the complexity of that section is $O(k^2 \times n)$ as standard. The pre-computing of possible silent state sequences is the main difference from the normal procedure, so we will now study that.
+
+Technically, the modified Viterbi being run for each state transition could run forever in a model where both emission and transition probabilities of 1 are present. However, in the real world, HMMs that incorporate probabilities of 1 are not very useful or likely, so I believe this is not a problem. In a more realistic scenario, with a reasonable number of states with reasonable transition and emission probabilities, it is unlikely that it will reach sequences with greater lengths than one or two orders of magnitude. Testing an extreme situation with silent state transition \& emission probabilities of 0.99 and a target transition probability of 0.1 yielded only 230 iterations.
+
+The modified Viterbi algorithm will need to iterate over [all states, for each state, for each sequence length], and is being run for [all end states, for each start state]. Giving the silent state sequence length before [all probabilities $\leq$ transition probability] for any start/end pair the name $s$, its time complexity is a function of:
+
+$$k^4 \times \text{Average}(s)$$
+
+The value of $s$, and its average, are difficult to estimate, as it relies on nuances relating to the distributions of transition and emission probabilities. However, as mentioned above, I believe that it will not reach unreasonable magnitude for a real-world HMM, so it is not a huge problem. Also, any model with an excessively large number of iterations for one state pair will necessarily have an extremely uneven distribution of probabilities. Therefore, some state pairs would need zero (or otherwise a very small number of) iterations to evaluate, which goes some way to offset this individual complexity.
+
+To summarise, both $k$ and the average sequence length required to evaluate the silent state sequences will be relatively small for most reasonable cases. It is worth noting that the value that is usually largest, the overall sequence length $n$, has no bearing on this process - meaning this preprocessing section will take the same time even with extreme observed sequence lengths.
+
+\hfill
+
+The space complexity of the first section is also fairly reasonable. The matrix that stores the most likely silent state sequences for each transition will be of size $k^2 \times \text{(Average OR Maximum)}(s)$, depending on whether a linked list or fixed array is used for the state sequences. The main trellis of probabilities used for the modified Viterbi algorithm will never exceed a factor of $k \times \text{Maximum}(s)$.
+
+For the main Viterbi section, we once again have the usual space complexity of $k \times n$ for the main trellis, and the usual HMM parameters: the emission matrix at $k \times [\text{Number of symbols}]$, the transition matrix at $k^2$ and the initial probability distribution at $k$. However, we also need to store the silent state sequences for each transition for backtracking purposes, at the above size of $k^2 \times \text{(Average OR Maximum)}(s)$.
+
+\hfill
+
+Therefore, to summarise:
+
+The time complexity of the pre-computation is $k^4 \times \text{Average}(s)$, with its most space-complex structure at a complexity of $k^2 \times \text{(Average OR Maximum)}(s)$.
+
+The second half of the algorithm, the standard Viterbi process, requires time of $O(k^2 \times n)$ and space $O(k \times n)$ with a small number of additional structures up to $k^2 \times \text{(Average OR Maximum)}(s)$.
+
+It is worth noting that $n$, for a typical HMM, will be far larger than $k$ or $s$, so the apparent complexity of the pre-computation is less extreme than it may seem at a glance.
+
+\hfill
+
+\hfill
+
 \subsection{The Expectation-Maximisation Algorithm}
 My implementation of EM for HMMs (aka the Baum-Welch algorithm) has been included in the file 'q1b.py'. Expectation-Maximisation works as follows:
 
@@ -186,18 +187,18 @@ My implementation of EM for HMMs (aka the Baum-Welch algorithm) has been include
 	
 	Run the forward algorithm on the sequence, given the initial generated parameters. The forward algorithm generates a trellis of probabilities with width \texttt{num\_states} and height \texttt{sequence\_length}. Each probability in this trellis corresponds to the likelihood of arriving in each state at each point in the observed sequence.
 	
-	Run the backward algorithm on the sequence. The backward algorithm generates a similar trellis of probabilities to the forward algorithm: the only difference is that the probabilities in the trellis correspond to the likelihood of producing the rest of the sequence starting from the given state at the given point.
+	Run the backward algorithm on the sequence. The backward algorithm generates a similar trellis of probabilities to the forward algorithm: the only difference is that the probabilities in the trellis correspond to the likelihood of producing the rest of the sequence starting from the given state at the given point in the sequence.
 	
-	With these metrics computed, we can compute the estimated number of times that each transition or emission will occur given our current model parameters. We can then divide these by the total number of transmissions \& emissions to find a new set of model parameters, and also compute a new distribution for the starting states. Finally, we compute the likelihood of the sequence being observed under our new set of parameters. This is used to measure progress towards the maximum.
+	With these metrics computed, we can compute the estimated number of times that each transition or emission will occur given our current model parameters. We can then divide these by the total number of transmissions \& emissions to find a new set of model parameters, and also compute a new distribution for the starting states based on values from the first row of the trellises. Finally, we compute the log likelihood of the sequence being observed under our new set of parameters. This is used to measure progress towards the maximum.
 	
-	These new parameters are then substituted for the old ones, and the algorithm repeats again, starting with the forward algorithm. This happens until the likelihood of the new parameters stops appreciably increasing, at which point the algorithm terminates and returns the final set of parameters. For termination I used the point at which two consecutive likelihoods are identical, since at this point the increase in likelihood is less than machine precision.
+	These new parameters are then substituted for the old ones, and the algorithm repeats again, starting with the forward algorithm. This happens until the likelihood of the new parameters stops appreciably increasing, at which point the algorithm terminates and returns the final set of parameters. For termination I used the point at which two consecutive likelihoods are identical - at this point the increase in likelihood is less than machine precision.
 \end{quote}
 
-Since we are multiplying lots of probabilities here, which tends to result in very small numbers and will never exceed 1.0, it is a good idea to work in log space in order to maximise precision and minimise underflows. Since the log function effectively 'stretches out' small numbers and 'squashes' large numbers in its output space, it is ideal for this task. In log space, operations such as multiplication and division can be easily done with addition and subtraction. Numbers do need to be converted out of log space for a 'logsumexp' operation when sums are required, but this is not a significant problem.
+Since we are multiplying lots of probabilities here, which tends to result in very small numbers and will never exceed 1.0, it is a good idea to work in log space in order to maximise precision and minimise underflows. Since the log function effectively 'stretches out' small numbers and 'squashes' large numbers in its output space, it is ideal for this task. In log space, operations such as multiplication and division can be easily done with addition and subtraction. Numbers do need to be converted out of log space for a 'logsumexp' operation when sums are required, but this is not a significant problem as there will always be numbers of significant enough magnitude that results are useful.
 
-One issue I did encounter was that there were instances where probabilities of 0 were reached: this would land out of the range of the log function. To solve this, I implemented wrapper functions for \texttt{math.exp()} and \texttt{math.log()} which allowed the conversion of 0 into log space as negative infinity. Since the log space is entirely internal and the values returned are in conventional space, this works fine.
+One issue I did encounter was that there were instances where probabilities of 0 were reached: this would land out of the range of the log function. To solve this, I implemented wrapper functions for \texttt{math.exp()} and \texttt{math.log()} which allowed the conversion of 0 into log space as negative infinity. Since the log space is entirely internal and the values returned are in conventional space, this does not affect the program's I/O.
 
-I also employed a scaling method to keep numbers within reasonable bounds, based on section (V)(A) of \href{http://dx.doi.org/10.1109/5.18626}{Rabiner's 1989 paper on HMMs}. This involved dividing each row in the forward trellis by its sum to ensure they added up to 1, and using the same forward sums to also scale the corresponding rows of the backward trellis. This causes the log likelihood in its normal form to be lost, but as shown in the paper it instead becomes equal to the sum of the logs of the row sums.
+I also employed a scaling method to keep numbers within reasonable bounds, based on section (V)(A) of \href{http://dx.doi.org/10.1109/5.18626}{Rabiner's 1989 paper on HMMs}. This involved dividing each row in the forward trellis by its sum to ensure it added up to 1, and using the same forward sums to also scale the corresponding rows of the backward trellis. This causes the log likelihood in its normal form to be lost, but as shown in the paper it instead becomes equal to the sum of the logs of the row sums.
 
 I also used the \texttt{randpd2} algorithm from \href{https://thehousecarpenter.wordpress.com/2017/02/22/generating-random-probability-distributions/}{The House Carpenter on WordPress} to generate random probability distributions.
 
@@ -227,13 +228,13 @@ Following a number of tests on randomised sequences, I am confident that my impl
 \section{Tree Reconstruction}
 
 \subsection{The BUILD Algorithm}
-If we call $(i,j)$ the lowest common ancestor of the leaves $i$ and $j$ of a tree, we can also define an operator $<$ which denotes the hierarchy of lowest common ancestors. For example, the constraint $(i,j)<(k,l)$ tells us that the lowest common ancestor of $k$ and $l$ is itself an ancestor of the lowest common ancestor of $i$ and $j$ - see figure below.
+If we call $(i,j)$ the lowest common ancestor of the leaves $i$ and $j$ of a tree, we can define an operator $<$ which denotes the hierarchy of lowest common ancestors. For example, the constraint $(i,j)<(k,l)$ tells us that the lowest common ancestor of $k$ and $l$ is itself an ancestor of the lowest common ancestor of $i$ and $j$ - see figure below.
 
 \begin{center}
 	\includegraphics[width=10cm]{buildexample}
 \end{center}
 
-The purpose of the BUILD algorithm is to construct a tree solely from these constraints. In a bioinformatics context, assuming the tree is a phylogeny, the constraints would be describing how closely related pairs of species are. As an example, we would specify the above constraint if we knew that the four species $\{i,j,k,l\}$ all had a common ancestor, but $i$ and $j$ were more closely related to each other than to the rest.
+The purpose of the BUILD algorithm is to construct a tree solely from these constraints. In a bioinformatics context, assuming the tree is a phylogeny, the constraints would be describing how closely related pairs of species are. As an example, we would specify the above constraint if we knew that the four species $\{i,j,k,l\}$ all had a common ancestor, but $i$ and $j$ were more closely related to each other than to the others.
 
 In BUILD, the structure of a tree is inferred using a technique known as 'partitioning'. This is when the set of leaves is split into groups known as 'blocks' at the root - for example, assuming descriptive enough constraints, the above tree would be split into the two sets $\{i,j,k\}$ and $\{l,m\}$ at the root. This partitioning can be done fairly easily using logical properties of the constraints:
 
@@ -243,7 +244,7 @@ From any constraint $(i,j)<(k,l)$ we can infer that:
 	\item If we already know that $k$ and $l$ are in the same block, then $i$ and $j$ must also be in that same block.
 \end{enumerate}
 
-We also assume that no two leaves are in the same block unless otherwise specified by the constraints. In the original paper, this is called the third rule.
+We also assume that no two leaves are in the same block unless otherwise specified by the constraints. Essentially, this means that any leaves $t$ that are not added to blocks as a result of constraints will be put in their own block $\{t\}$. In the original paper, this is called the third rule.
 
 With the set of leaves split into at least two blocks, we recurse into each block, partitioning every block until there is only one leaf left in the set. At this point, the algorithm's recursive structure exactly reflects the tree being constructed, so it simply needs to construct and return a tree. Instances with just one leaf return it, and instances that partitioned items join the returned structures with a new node until the outer layer is reached and the tree is complete.
 
@@ -267,7 +268,8 @@ For each constraint $(a,b)<(c,d)$:
     Add $a$ to that block
 
 For each constraint $(a,b)<(c,d)$:
-  If $c$ and $d$ share a block, merge the block containing $a$ and $b$ into it
+  If $c$ and $d$ share a block but $a$ and $b$ are in another block:
+    Replace those two blocks with their union
 
 For each leaf $x$ that is not a member of an existing block:
   Add the new block [$x$] to $\pi_C$
@@ -281,7 +283,7 @@ The result of this algorithm is the 2D array $\pi_C$, with structure as follows:
   [n]
 ]
 \end{lstlisting}
-Each sub-array (each depicted here on its own line) corresponds to a block $S_i$, with letters denoting the leaves in that block.
+Each sub-array (each depicted here on its own line) corresponds to a block $S_i$, with letters denoting the leaves in that block. The entry \texttt{[n]} represents a leaf \texttt{n} that is a direct child of the current node.
 
 
 \subsection{Example}
@@ -899,15 +901,17 @@ The key to this algorithm is the \texttt{TreeNode.traverse()} function. This fun
 \begin{itemize}
 	\item A list of constraints defining the subtree under the current node
 	\item A 'flattened' list of all the leaves beneath the current node
-	\item A list of pairs of leaves that occupy different branches underneath the current node (such that those branches will need to be connected up in the parent to ensure that they are all passed down to the current node when constructing). This is referred to as \texttt{pairsToConnect} in the code and below.
+	\item A list of pairs of leaves that occupy different branches underneath the current node (such that those branches will need to be connected up in the parent to ensure that they are all placed in the block representing the current node when constructing). This is referred to as \texttt{pairsToConnect} in the code and below.
 \end{itemize}
 
-The \texttt{TreeNode.traverse()} function calls itself recursively on the children, and uses the output of each child to construct the information needed for the current node. Each child is treated as a 'black box' that generates the constraints needed to describe its own structure and returns any pairs of nodes that need connecting together to form a coherent block at the parent level. As such, as long as it generates correct constraints for shallow (< $\approx$3-4-layer) trees, it will be correct for any tree.
+The \texttt{TreeNode.traverse()} function calls itself recursively on the children, and uses the output of each child to construct the information needed for the current node. Each child is treated as a 'black box' that generates the constraints needed to describe its own structure and returns any pairs of nodes that need connecting together to form a coherent block at the parent level. As such, as long as the algorithm generates correct constraints for shallow (< $\approx$3-4-layer) trees, it will be correct for any tree.
+
+In the following section I will be referring to 'internal children': these are taken to be direct children of the current node that are not leaves. Each internal child will have at least two leaves somewhere beneath it in a valid tree.
 
 The constraints returned are decided as follows:
 \begin{itemize}
-	\item No constraints if the current node has no internal children
-	\item One for each leaf 'l': (a, b) < (a, l) where [a, b] come from the same internal child (and willl be preferentially selected from child pairsToConnect sets before arbitrarily picking them)
+	\item No constraints if the current node has no internal children. Otherwise:
+	\item One for each directly-attached leaf 'l': (a, b) < (a, l) where [a, b] come from the same internal child (and willl be preferentially selected from child pairsToConnect sets before arbitrarily picking them)
 	\item Any further constraints (a, b) < (a, x) where [a, b] are from child pairsToConnect sets and x is chosen arbitrarily from children's flat lists (these constraints simply serve to merge any remaining unmerged pairsToConnect)
 	\item Any constraints passed up from children
 \end{itemize}
@@ -920,7 +924,7 @@ The pairsToConnect are decided as follows:
 	\item Pairs of leaves beneath n$_i$ and n$_{i+1}$ for each internal child n$_i$ except the last
 	\item (a, l) for each leaf l where a is a leaf beneath an internal child
 \end{itemize}
-Abstractly, the aim of pairsToConnect is to ensure every branch underneath the current node is linked to at least one other branch in the parent, forming a fully connected block with the minimum number of constraints.
+Abstractly, the aim of pairsToConnect is to ensure every branch underneath the current node is linked to at least one other branch in the parent, forming a fully connected block without using more constraints than are needed.
 
 For the following structures, \texttt{TreeNode.traverse()} on the root might return:
 \begin{center}
@@ -944,7 +948,7 @@ This case demonstrates how an internal node with leaves for children would retur
 	\includegraphics[scale=0.1]{traverse3} & (['(a, b) < (a, c)'], ['a', 'b', 'c'], [('a', 'c')])
 \end{tabular}
 \end{center}
-This is the simplest tree for which a constraint can be generated. It is represented by a single constraint. At this level we cannot generate constraints that ensure that the items of the (a, b) branch and the (c) branch are put together in the parent's blocks, which is why it returns the pair (a, c) for connecting with a constraint LHS in the parent.
+This is the simplest tree for which a constraint can be generated. It is represented by a single constraint. At this level we cannot generate constraints that ensure that the items of the (a, b) branch and the (c) branch are put together in the parent's blocks, which is why it returns the pair (a, c) for connecting with a constraint in the parent.
 
 \hfill
 
@@ -967,6 +971,6 @@ This is a larger version of the third example. Each constraint links an internal
 
 \hfill
 
-While I have not conducted any formal proofs, I am confident that this algorithm is close to being optimal (if not optimal already). As a benchmark, it describes the graph in question 2c in only 11 constraints. For most small, contrived graphs, I believe its result to be accurate and optimal, and see no particular reason that this would not apply to larger graphs too.
+While I have not conducted any formal proofs, I am confident that this algorithm is close to being optimal (if not optimal already). As a benchmark, it describes the graph in question 2c in only 11 constraints. For all small, contrived graphs on which I have tested it, I have found its result to be accurate (and, as far as I can tell, optimal), and see no particular reason that this would not apply to larger graphs too.
 
 \end{document}
